@@ -3,20 +3,22 @@ package entitycolections;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import entities.Song;
+import lombok.Getter;
 
 import java.util.ArrayList;
 
+@Getter
 @JsonIgnoreProperties({"visibility", "followers"})
 public class Album extends Playlist {
     @JsonIgnore
     private int releaseYear;
     @JsonIgnore
-    private String descrition;
+    private String description = "";
 
-    public Album(String name, int time, int releaseYear, String descrition, ArrayList<Song> songs) {
-        super(name, time);
+    public Album(String name, int time, int releaseYear, String artist , String description, ArrayList<Song> songs) {
+        super(name, time, artist);
         this.releaseYear = releaseYear;
-        this.descrition = descrition;
+        this.description = description;
         for (Song s : songs) {
             this.getSongs().add(s.getName());
             this.getSongsfull().add(s);
