@@ -50,6 +50,7 @@ public final class MusicPlayer {
         if (whatIsLoaded == 0) {
             this.loaded = name;
             crtSong = DataBase.findSong(name);
+            crtSong.usingThis(1);
             audioSourceUser = DataBase.findUser(crtSong.getArtist());
             remainingTime = crtSong.getDuration();
             crtPlaylist = null;
@@ -59,6 +60,7 @@ public final class MusicPlayer {
             crtPlaylist.usingThis(1);
             audioSourceUser = DataBase.findUser(crtPlaylist.getOwner());
             crtSong = crtPlaylist.getSongsfull().get(0);
+            crtSong.usingThis(1);
             remainingTime = crtSong.getDuration();
             loaded = crtSong.getName();
             for (int i = 0; i < crtPlaylist.getSongsfull().size(); i++) {
@@ -107,6 +109,9 @@ public final class MusicPlayer {
     public void unload() {
         if (audioSourceUser != null) {
             audioSourceUser.useThis(-1);
+        }
+        if (whatIsLoaded == 0) {
+            crtSong.usingThis(-1);
         }
         if (whatIsLoaded == 1) {
             crtPlaylist.usingThis(-1);
@@ -158,11 +163,14 @@ public final class MusicPlayer {
                         switch (repeat) {
                             case 0:
                                 if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
+                                    crtSong.usingThis(-1);
                                     unload();
                                 } else {
                                     nowInPlaylist++;
+                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
+                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 }
@@ -171,14 +179,18 @@ public final class MusicPlayer {
                             case 1:
                                 if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
                                     nowInPlaylist = 0;
+                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
+                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 } else {
                                     nowInPlaylist++;
+                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
+                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 }
@@ -250,7 +262,6 @@ public final class MusicPlayer {
 
     /** moves the time forward by 90 seconds*/
     public void forward(final int crtTime) {
-        updateTime(crtTime);
         remainingTime = remainingTime - ninety;
         if (remainingTime < 0) {
             remainingTime = 0;
@@ -261,7 +272,6 @@ public final class MusicPlayer {
 
     /** moves the time backwards by 90 seconds*/
     public void backwards(final int crtTime) {
-        updateTime(crtTime);
         remainingTime = remainingTime + ninety;
         if (remainingTime > crtEp.getDuration()) {
             remainingTime = crtEp.getDuration();
@@ -270,7 +280,6 @@ public final class MusicPlayer {
 
     /** skips to the next audio file*/
     public void next(final int crtTime) {
-        updateTime(crtTime);
         paused = false;
         remainingTime = -1;
         updateTime(crtTime);
@@ -282,7 +291,6 @@ public final class MusicPlayer {
     /** moves to the previous audio file or plays the current one from the start,
      * depending on the situation*/
     public void prev(final int crtTime) {
-        updateTime(crtTime);
         paused = false;
         switch (whatIsLoaded) {
             case 0:
@@ -382,6 +390,7 @@ public final class MusicPlayer {
     }
 
     public void doForward(Command cmd, ObjectNode node) {
+        updateTime(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message", "Please load a source before attempting to forward.");
         } else if (this.getWhatIsLoaded() != 2) {
@@ -393,6 +402,7 @@ public final class MusicPlayer {
     }
 
     public void doBackwards(Command cmd, ObjectNode node) {
+        updateTime(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message", "Please load a source before skipping forward.");
         } else if (this.getWhatIsLoaded() != 2) {
@@ -404,6 +414,7 @@ public final class MusicPlayer {
     }
 
     public void doNext(Command cmd, ObjectNode node) {
+        updateTime(cmd.getTimestamp());
         this.next(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message", "Please load a source before skipping to the next track.");
@@ -415,6 +426,7 @@ public final class MusicPlayer {
     }
 
     public void doPrev(Command cmd, ObjectNode node) {
+        updateTime(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message",
                     "Please load a source before returning to the previous track.");
@@ -431,7 +443,7 @@ public final class MusicPlayer {
         if (this.getWhatIsLoaded() == -1) {
             node.put("message", "Please load a source before using the shuffle function.");
         } else if (this.getWhatIsLoaded() != 1) {
-            node.put("message", "The loaded source is not a playlist.");
+            node.put("message", "The loaded source is not a playlist or an album.");
         } else {
             if (this.shuffle(cmd.getSeed())) {
                 node.put("message", "Shuffle function activated successfully.");

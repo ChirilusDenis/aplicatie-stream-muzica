@@ -30,14 +30,6 @@ public class Artist extends User implements Comparable{
         return false;
     }
 
-    public void addMerch(Command cmd) {
-        artistPage.getMerches().add(new Merch(cmd.getName(), cmd.getDescription(), cmd.getPrice()));
-    }
-
-    public void addEvent(Command cmd) {
-        artistPage.getEvents().add(new Event(cmd.getName(), cmd.getDate(), cmd.getDescription()));
-    }
-
     @Override
     public String printPage() {
         return artistPage.toString();
@@ -52,7 +44,7 @@ public class Artist extends User implements Comparable{
         }
         if (searchedAlbum == null) {
             node.put("message", this.getUsername() + " doesn't have an album with the given name.");
-        } else if (searchedAlbum.getNumUsersPlaying() != 0) {
+        } else if (searchedAlbum.getNumUsersPlaying() != 0 || searchedAlbum.areAnySongsUsed()) {
             node.put("message", this.getUsername() + " can't delete this album.");
         } else {
             node.put("message", this.getUsername() + " deleted the album successfully.");
@@ -71,5 +63,32 @@ public class Artist extends User implements Comparable{
     @Override
     public int compareTo(Object o) {
         return this.allLikes() - ((Artist) o).allLikes();
+    }
+
+    public void addAlbum(Command cmd, ObjectNode node) {
+        Album album = new Album(cmd.getName(), cmd.getTimestamp(), cmd.getReleaseYear(), this.getUsername(),
+                cmd.getDescription(),cmd.getSongs());
+        if (this.hasAlbum(album.getName())) {
+            node.put("message", this.getUsername() + " has another album with the same name.");
+        } else if (album.hasSongTwice()) {
+            node.put("message", this.getUsername()
+                    + " has the same song at least twice in this album.");
+        } else {
+            albums.add(album);
+            node.put("message", this.getUsername() + " has added new album successfully.");
+        }
+    }
+
+    public boolean canBeDeleted() {
+        int sum = 0;
+        for (Album album : albums) {
+            sum = sum + album.getNumUsersPlaying();
+            for (Song song : album.getSongsfull()) {
+                sum = sum + song.getNumUsing();
+            }
+        }
+        if (sum == 0) {
+            return true;
+        } else { return false;}
     }
 }

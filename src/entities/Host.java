@@ -83,4 +83,15 @@ public class Host extends User{
             }
         }
     }
+
+    public boolean canBeDeleted() {
+        int sum = 0;
+        for (Podcast podcast : podcasts) {
+            sum = sum + podcast.getNumUsingThis();
+        }
+        if (sum == 0) {
+            return true;
+        }
+        return false;
+    }
 }
