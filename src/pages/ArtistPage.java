@@ -1,8 +1,10 @@
 package pages;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import entitycolections.Album;
 import lombok.Getter;
 import lombok.Setter;
+import tools.Command;
 
 import java.util.ArrayList;
 
@@ -60,5 +62,14 @@ public class ArtistPage {
             }
         }
         return false;
+    }
+
+    public void removeEvent(Command cmd, ObjectNode node) {
+        if (!this.hasEvent(cmd.getName())) {
+            node.put("message", cmd.getUsername() + " doesn't have an event with the given name.");
+        } else {
+            node.put("message", cmd.getUsername() + " deleted the event successfully.");
+            this.events.removeIf((e) -> e.getName().equals(cmd.getName()));
+        }
     }
 }

@@ -61,4 +61,26 @@ public class Host extends User{
         }
     }
 
+    public boolean hasPodcast(String name) {
+        for (Podcast podcast : this.podcasts) {
+            if (podcast.getName().equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void removePodcast(Command cmd, ObjectNode node) {
+        if (!this.hasPodcast(cmd.getName())) {
+            node.put("message", this.getUsername() + " doesn't have a podcast with the given name.");
+        } else {
+            Podcast podcast = DataBase.findPodcast(cmd.getName());
+            if (podcast.getNumUsingThis() != 0) {
+                node.put("message", this.getUsername() + " can't delete this podcast.");
+            } else {
+                node.put("message", this.getUsername() + " deleted the podcast successfully.");
+                this.podcasts.remove(podcast);
+            }
+        }
+    }
 }

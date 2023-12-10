@@ -1,5 +1,6 @@
 package tools;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import entities.PodcastEpisode;
 import entities.Song;
 import entities.User;
@@ -55,6 +56,7 @@ public final class MusicPlayer {
         }
         if (whatIsLoaded == 1) {
             crtPlaylist = DataBase.findPlaylist(name);
+            crtPlaylist.usingThis(1);
             audioSourceUser = DataBase.findUser(crtPlaylist.getOwner());
             crtSong = crtPlaylist.getSongsfull().get(0);
             remainingTime = crtSong.getDuration();
@@ -66,6 +68,7 @@ public final class MusicPlayer {
         }
         if (whatIsLoaded == 2) {
             crtPd = DataBase.findPodcast(name);
+            crtPd.usingThis(1);
             audioSourceUser = DataBase.findUser(crtPd.getOwner());
             if (crtPd.getEpisodesFull().contains(crtEp)) {
                 remainingTime = lastEpTime;
@@ -104,6 +107,12 @@ public final class MusicPlayer {
     public void unload() {
         if (audioSourceUser != null) {
             audioSourceUser.useThis(-1);
+        }
+        if (whatIsLoaded == 1) {
+            crtPlaylist.usingThis(-1);
+        }
+        if (whatIsLoaded == 2) {
+            crtPd.usingThis(-1);
         }
         audioSourceUser = null;
         remainingTime = 0;
@@ -320,7 +329,115 @@ public final class MusicPlayer {
                 shuffleList.add(i);
             }
         }
-
         return shuffle;
+    }
+
+    public void doPlayPause(Command cmd, ObjectNode node) {
+        if (this.getLoaded().isEmpty()) {
+            node.put("message",
+                    "Please load a source before attempting to pause or resume playback.");
+        } else {
+            if (this.isPaused()) {
+                node.put("message", "Playback resumed successfully.");
+            } else {
+                node.put("message", "Playback paused successfully.");
+            }
+            this.playPause(cmd.getTimestamp());
+        }
+    }
+
+    public void doRepeat(Command cmd, ObjectNode node) {
+        String repeatStatus = "";
+
+        if (this.getLoaded().isEmpty()) {
+            node.put("message", "Please load a source before setting the repeat status.");
+        } else {
+            this.updateTime(cmd.getTimestamp());
+            this.switchRepeat();
+            switch (this.getRepeat()) {
+                case 0:
+                    repeatStatus = "no repeat.";
+                    break;
+
+                case 1:
+                    if (this.getWhatIsLoaded() == 1) {
+                        repeatStatus = "repeat all.";
+                    } else {
+                        repeatStatus = "repeat once.";
+                    }
+                    break;
+
+                case 2:
+                    if (this.getWhatIsLoaded() == 1) {
+                        repeatStatus = "repeat current song.";
+                    } else {
+                        repeatStatus = "repeat infinite.";
+                    }
+                    break;
+                default:
+                    break;
+            }
+            node.put("message", "Repeat mode changed to " + repeatStatus);
+        }
+    }
+
+    public void doForward(Command cmd, ObjectNode node) {
+        if (this.getWhatIsLoaded() == -1) {
+            node.put("message", "Please load a source before attempting to forward.");
+        } else if (this.getWhatIsLoaded() != 2) {
+            node.put("message", "The loaded source is not a podcast.");
+        } else {
+            node.put("message", "Skipped forward successfully.");
+            this.forward(cmd.getTimestamp());
+        }
+    }
+
+    public void doBackwards(Command cmd, ObjectNode node) {
+        if (this.getWhatIsLoaded() == -1) {
+            node.put("message", "Please load a source before skipping forward.");
+        } else if (this.getWhatIsLoaded() != 2) {
+            node.put("message", "The loaded source is not a podcast.");
+        } else {
+            node.put("message", "Rewound successfully.");
+            this.backwards(cmd.getTimestamp());
+        }
+    }
+
+    public void doNext(Command cmd, ObjectNode node) {
+        this.next(cmd.getTimestamp());
+        if (this.getWhatIsLoaded() == -1) {
+            node.put("message", "Please load a source before skipping to the next track.");
+        } else {
+            node.put("message",
+                    "Skipped to next track successfully. The current track is "
+                            + this.getLoaded() + ".");
+        }
+    }
+
+    public void doPrev(Command cmd, ObjectNode node) {
+        if (this.getWhatIsLoaded() == -1) {
+            node.put("message",
+                    "Please load a source before returning to the previous track.");
+        } else {
+            this.prev(cmd.getTimestamp());
+            node.put("message",
+                    "Returned to previous track successfully. The current track is "
+                            + this.getLoaded() + ".");
+        }
+    }
+
+    public void doShuffle(Command cmd, ObjectNode node) {
+        this.updateTime(cmd.getTimestamp());
+        if (this.getWhatIsLoaded() == -1) {
+            node.put("message", "Please load a source before using the shuffle function.");
+        } else if (this.getWhatIsLoaded() != 1) {
+            node.put("message", "The loaded source is not a playlist.");
+        } else {
+            if (this.shuffle(cmd.getSeed())) {
+                node.put("message", "Shuffle function activated successfully.");
+            } else {
+                node.put("message", "Shuffle function deactivated successfully.");
+            }
+        }
     }
 }

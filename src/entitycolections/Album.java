@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 @Getter
 @JsonIgnoreProperties({"visibility", "followers"})
-public class Album extends Playlist {
+public class Album extends Playlist implements Comparable{
     @JsonIgnore
     private int releaseYear;
     @JsonIgnore
@@ -34,5 +34,23 @@ public class Album extends Playlist {
             }
         }
         return false;
+    }
+
+    @JsonIgnore
+    public int getLikes() {
+        int numLikes = 0;
+        for (Song s : this.getSongsfull()) {
+            numLikes = numLikes + s.getNumLikes();
+        }
+        return numLikes;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        Album album = (Album) o;
+        if (this.getLikes() == album.getLikes()) {
+            return this.getName().compareTo(album.getName());
+        }
+        return this.getLikes() - album.getLikes();
     }
 }

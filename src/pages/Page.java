@@ -38,4 +38,22 @@ public class Page {
         }
         return "Liked songs:\n\t[" + songs + "]\n\nFollowed playlists:\n\t[" + play + "]";
     }
+
+    public String fullPageToString() {
+        String songs = "";
+        for (Song s : likedSongs) {
+            songs = songs + s.getName() + " - " + s.getArtist() + ", ";
+        }
+        if (!songs.equals("")) {
+            songs = songs.substring(0, songs.length() - 2);
+        }
+        String play = "";
+        for (Playlist p : followedPlaylists) {
+            play = play + p.getName() + " - " + p.getOwner() + ", ";
+        }
+        if (!play.equals("")) {
+            play = play.substring(0, play.length() - 2);
+        }
+        return "Liked songs:\n\t[" + songs + "]\n\nFollowed playlists:\n\t[" + play + "]";
+    }
 }

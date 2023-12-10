@@ -1,5 +1,6 @@
 package entities;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import entitycolections.Album;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +12,7 @@ import tools.Command;
 import java.util.ArrayList;
 
 @Getter @Setter
-public class Artist extends User {
+public class Artist extends User implements Comparable{
     private ArrayList<Album> albums = new ArrayList<>();
 
     private ArtistPage artistPage = new ArtistPage(this.albums);
@@ -42,4 +43,33 @@ public class Artist extends User {
         return artistPage.toString();
     }
 
+    public void removeAlbum(Command cmd, ObjectNode node) {
+        Album searchedAlbum = null;
+        for (Album album : this.albums) {
+            if (album.getName().equals(cmd.getName())) {
+                searchedAlbum = album;
+            }
+        }
+        if (searchedAlbum == null) {
+            node.put("message", this.getUsername() + " doesn't have an album with the given name.");
+        } else if (searchedAlbum.getNumUsersPlaying() != 0) {
+            node.put("message", this.getUsername() + " can't delete this album.");
+        } else {
+            node.put("message", this.getUsername() + " deleted the album successfully.");
+            albums.remove(searchedAlbum);
+        }
+    }
+
+    public int allLikes() {
+        int numLikes = 0;
+        for (Album a : this.albums) {
+            numLikes = numLikes + a.getLikes();
+        }
+        return numLikes;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        return this.allLikes() - ((Artist) o).allLikes();
+    }
 }

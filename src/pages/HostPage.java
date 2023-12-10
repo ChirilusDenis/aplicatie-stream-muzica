@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.util.ArrayList;
 
 @Getter
-public class HostPage extends Page {
+public class HostPage {
     private ArrayList<Announcement> announcements = new ArrayList<>();
     private ArrayList<Podcast> podcasts;
 
@@ -50,4 +50,5 @@ public class HostPage extends Page {
         }
         return "Podcasts:\n\t[" + podcastStr + "]\n\nAnnouncements:\n\t[" + announcementStr + "\n]";
     }
+
 }
