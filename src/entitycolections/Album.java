@@ -49,7 +49,7 @@ public class Album extends Playlist implements Comparable{
     public int compareTo(Object o) {
         Album album = (Album) o;
         if (this.getLikes() == album.getLikes()) {
-            return album.getName().compareTo(this.getName());
+            return this.getName().compareTo(album.getName());
         }
         return album.getLikes() - this.getLikes();
     }

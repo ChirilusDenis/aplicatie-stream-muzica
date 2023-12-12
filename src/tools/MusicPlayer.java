@@ -59,8 +59,11 @@ public final class MusicPlayer {
             crtPlaylist = DataBase.findPlaylist(name);
             crtPlaylist.usingThis(1);
             audioSourceUser = DataBase.findUser(crtPlaylist.getOwner());
+            for (Song song : crtPlaylist.getSongsfull()) {
+                song.usingThis(1);
+            }
             crtSong = crtPlaylist.getSongsfull().get(0);
-            crtSong.usingThis(1);
+//            crtSong.usingThis(1);
             remainingTime = crtSong.getDuration();
             loaded = crtSong.getName();
             for (int i = 0; i < crtPlaylist.getSongsfull().size(); i++) {
@@ -115,6 +118,9 @@ public final class MusicPlayer {
         }
         if (whatIsLoaded == 1) {
             crtPlaylist.usingThis(-1);
+            for (Song song : crtPlaylist.getSongsfull()) {
+                song.usingThis(-1);
+            }
         }
         if (whatIsLoaded == 2) {
             crtPd.usingThis(-1);
@@ -163,14 +169,14 @@ public final class MusicPlayer {
                         switch (repeat) {
                             case 0:
                                 if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
-                                    crtSong.usingThis(-1);
+//                                    crtSong.usingThis(-1);
                                     unload();
                                 } else {
                                     nowInPlaylist++;
-                                    crtSong.usingThis(-1);
+//                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
-                                    crtSong.usingThis(1);
+//                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 }
@@ -179,18 +185,18 @@ public final class MusicPlayer {
                             case 1:
                                 if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
                                     nowInPlaylist = 0;
-                                    crtSong.usingThis(-1);
+//                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
-                                    crtSong.usingThis(1);
+//                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 } else {
                                     nowInPlaylist++;
-                                    crtSong.usingThis(-1);
+//                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
-                                    crtSong.usingThis(1);
+//                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 }
@@ -341,6 +347,7 @@ public final class MusicPlayer {
     }
 
     public void doPlayPause(Command cmd, ObjectNode node) {
+        this.updateTime(cmd.getTimestamp());
         if (this.getLoaded().isEmpty()) {
             node.put("message",
                     "Please load a source before attempting to pause or resume playback.");
@@ -356,11 +363,10 @@ public final class MusicPlayer {
 
     public void doRepeat(Command cmd, ObjectNode node) {
         String repeatStatus = "";
-
+        this.updateTime(cmd.getTimestamp());
         if (this.getLoaded().isEmpty()) {
             node.put("message", "Please load a source before setting the repeat status.");
         } else {
-            this.updateTime(cmd.getTimestamp());
             this.switchRepeat();
             switch (this.getRepeat()) {
                 case 0:

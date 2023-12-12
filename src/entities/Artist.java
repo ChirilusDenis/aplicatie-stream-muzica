@@ -8,6 +8,7 @@ import pages.ArtistPage;
 import pages.Event;
 import pages.Merch;
 import tools.Command;
+import tools.DataBase;
 
 import java.util.ArrayList;
 
@@ -15,7 +16,7 @@ import java.util.ArrayList;
 public class Artist extends User implements Comparable{
     private ArrayList<Album> albums = new ArrayList<>();
 
-    private ArtistPage artistPage = new ArtistPage(this.albums);
+    private ArtistPage artistPage = new ArtistPage(this, this.albums);
 
     public Artist(String username, String city, int age) {
         super(username, city, age);
@@ -62,7 +63,7 @@ public class Artist extends User implements Comparable{
 
     @Override
     public int compareTo(Object o) {
-        return this.allLikes() - ((Artist) o).allLikes();
+        return ((Artist) o).allLikes() - this.allLikes();
     }
 
     public void addAlbum(Command cmd, ObjectNode node) {
@@ -75,6 +76,7 @@ public class Artist extends User implements Comparable{
                     + " has the same song at least twice in this album.");
         } else {
             albums.add(album);
+            DataBase.getDB().getAllSongs().addAll(album.getSongsfull());
             node.put("message", this.getUsername() + " has added new album successfully.");
         }
     }

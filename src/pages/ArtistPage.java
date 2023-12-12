@@ -1,49 +1,26 @@
 package pages;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import entities.User;
 import entitycolections.Album;
 import lombok.Getter;
 import lombok.Setter;
+import misc.Date;
 import tools.Command;
 
 import java.util.ArrayList;
 
 @Getter @Setter
-public class ArtistPage {
+public class ArtistPage implements Visitable{
     private ArrayList<Merch> merches = new ArrayList<>();
     private ArrayList<Album> albums;
     private ArrayList<Event> events = new ArrayList<>();
 
-    public ArtistPage(ArrayList<Album> albums) {
+    private User owner;
+
+    public ArtistPage(User owner, ArrayList<Album> albums) {
         this.albums = albums;
-    }
-
-    @Override
-    public String toString() {
-        String albs ="";
-        for (Album a : this.albums) {
-            albs = albs + a.getName() + ", ";
-        }
-        if(!albs.equals("")) {
-            albs = albs.substring(0, albs.length() - 2);
-        }
-
-        String merch ="";
-        for (Merch a : this.merches) {
-            merch = merch + a.getName() + " - " + a.getPrice() + ":\n\t" + a.getDescription() + ", ";
-        }
-        if(!merch.equals("")) {
-            merch = merch.substring(0, merch.length() - 2);
-        }
-
-        String event = "";
-        for (Event e : this.events) {
-            event = event + e.getName() + " - " + e.getDate() + ":\n\t" + e.getDescription() + ", ";
-        }
-        if(!event.equals("")) {
-            event = event.substring(0, event.length() - 2);
-        }
-        return "Albums:\n\t[" + albs + "]\n\nMerch:\n\t[" + merch + "]\n\nEvents:\n\t[" + event + "]";
+        this.owner = owner;
     }
 
     public boolean hasMerch(String name) {
@@ -71,5 +48,32 @@ public class ArtistPage {
             node.put("message", cmd.getUsername() + " deleted the event successfully.");
             this.events.removeIf((e) -> e.getName().equals(cmd.getName()));
         }
+    }
+
+    public void addMerch(Command cmd, ObjectNode node) {
+        if (hasMerch(cmd.getName())) {
+            node.put("message", cmd.getUsername() + " has merchandise with the same name.");
+        } else if (cmd.getPrice() < 0) {
+            node.put("message", "Price for merchandise can not be negative.");
+        } else {
+            merches.add(new Merch(cmd.getName(), cmd.getDescription(), cmd.getPrice()));
+            node.put("message", cmd.getUsername() + " has added new merchandise successfully.");
+        }
+    }
+
+    public void addEvent(Command cmd, ObjectNode node) {
+        if (this.hasEvent(cmd.getName())) {
+            node.put("message", cmd.getUsername() + " has another event with the same name.");
+        } else if (!Date.isDateOK(cmd.getDate())) {// check date validity
+            node.put("message", "Event for " + cmd.getUsername() + " does not have a valid date.");
+        } else {
+            events.add(new Event(cmd.getName(), cmd.getDate(), cmd.getDescription()));
+            node.put("message", cmd.getUsername() + " has added new event successfully.");
+        }
+    }
+
+    @Override
+    public String accept(Visitor visitor) {
+        return visitor.visit(this);
     }
 }

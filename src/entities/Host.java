@@ -17,7 +17,7 @@ public class Host extends User{
     @JsonIgnore
     private ArrayList<Podcast> podcasts= new ArrayList<>();
     @JsonIgnore
-    private HostPage hostPage = new HostPage(podcasts);
+    private HostPage hostPage = new HostPage(this, podcasts);
     public Host(String username, String city, int age) {
         super(username, city, age);
     }
