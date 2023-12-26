@@ -2,8 +2,12 @@ package pages;
 
 
 public interface Visitor {
-    public String visit(Page page);
-    public String visit(LikedContentPage page);
-    public String visit(ArtistPage page);
-    public String visit(HostPage page);
+    /** visits a home page for printing */
+    String visit(Page page);
+    /** visits a liked content page for printing */
+    String visit(LikedContentPage page);
+    /** visits an artist page for printing */
+    String visit(ArtistPage page);
+    /** visits a host page for printing */
+    String visit(HostPage page);
 }

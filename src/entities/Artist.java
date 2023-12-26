@@ -4,25 +4,32 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import entitycolections.Album;
 import lombok.Getter;
 import lombok.Setter;
+import misc.WrappedVisitor;
 import pages.ArtistPage;
-import pages.Event;
-import pages.Merch;
 import tools.Command;
 import tools.DataBase;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 @Getter @Setter
-public class Artist extends User implements Comparable{
+public final class Artist extends User implements Comparable {
     private ArrayList<Album> albums = new ArrayList<>();
 
     private ArtistPage artistPage = new ArtistPage(this, this.albums);
 
-    public Artist(String username, String city, int age) {
+    private HashMap<String, Integer> listenedAlbums = new HashMap<>();
+    private HashMap<String, Integer> listenedSongs = new HashMap<>();
+    private ArrayList<String> fans = new ArrayList<>();
+    private int listeners = 0;
+
+
+    public Artist(final String username, final String city, final int age) {
         super(username, city, age);
     }
 
-    public boolean hasAlbum(String name) {
+    /** checks if this artist has an album with the specified name */
+    public boolean hasAlbum(final String name) {
         for (Album album : this.albums) {
             if (album.getName().equals(name)) {
                 return true;
@@ -31,12 +38,8 @@ public class Artist extends User implements Comparable{
         return false;
     }
 
-    @Override
-    public String printPage() {
-        return artistPage.toString();
-    }
-
-    public void removeAlbum(Command cmd, ObjectNode node) {
+    /** removes an album if possible and returns the appropriate message */
+    public void removeAlbum(final Command cmd, final ObjectNode node) {
         Album searchedAlbum = null;
         for (Album album : this.albums) {
             if (album.getName().equals(cmd.getName())) {
@@ -44,7 +47,8 @@ public class Artist extends User implements Comparable{
             }
         }
         if (searchedAlbum == null) {
-            node.put("message", this.getUsername() + " doesn't have an album with the given name.");
+            node.put("message", this.getUsername()
+                    + " doesn't have an album with the given name.");
         } else if (searchedAlbum.getNumUsersPlaying() != 0 || searchedAlbum.areAnySongsUsed()) {
             node.put("message", this.getUsername() + " can't delete this album.");
         } else {
@@ -53,22 +57,24 @@ public class Artist extends User implements Comparable{
         }
     }
 
+    /** get the number of likes from all the songs from all albums */
     public int allLikes() {
         int numLikes = 0;
-        for (Album a : this.albums) {
-            numLikes = numLikes + a.getLikes();
+        for (Album album : this.albums) {
+            numLikes = numLikes + album.getLikes();
         }
         return numLikes;
     }
 
     @Override
-    public int compareTo(Object o) {
+    public int compareTo(final Object o) {
         return ((Artist) o).allLikes() - this.allLikes();
     }
 
-    public void addAlbum(Command cmd, ObjectNode node) {
-        Album album = new Album(cmd.getName(), cmd.getTimestamp(), cmd.getReleaseYear(), this.getUsername(),
-                cmd.getDescription(),cmd.getSongs());
+    /** adds an album to this artist and returns the appropriate message */
+    public void addAlbum(final Command cmd, final ObjectNode node) {
+        Album album = new Album(cmd.getName(), cmd.getTimestamp(), cmd.getReleaseYear(),
+                this.getUsername(), cmd.getDescription(), cmd.getSongs());
         if (this.hasAlbum(album.getName())) {
             node.put("message", this.getUsername() + " has another album with the same name.");
         } else if (album.hasSongTwice()) {
@@ -81,6 +87,7 @@ public class Artist extends User implements Comparable{
         }
     }
 
+    /** checks if the artist has any content in use by other users */
     public boolean canBeDeleted() {
         int sum = 0;
         for (Album album : albums) {
@@ -91,6 +98,40 @@ public class Artist extends User implements Comparable{
         }
         if (sum == 0) {
             return true;
-        } else { return false;}
+        }
+        return false;
+    }
+
+    public void accept(WrappedVisitor visitor, ObjectNode node) {
+        visitor.visit(this, node);
+    }
+
+    public void addListenedSong(Song song) {
+        if (listenedSongs.containsKey(song.getName())) {
+            Integer numListens = listenedSongs.get(song.getName());
+            listenedSongs.replace(song.getName(), numListens + 1);
+        } else {
+            listenedSongs.put(song.getName(), 1);
+        }
+    }
+
+    public void addListenedAlbum(Album album) {
+        if (listenedAlbums.containsKey(album.getName())) {
+            Integer numListens = listenedAlbums.get(album.getName());
+            listenedAlbums.replace(album.getName(), numListens + 1);
+        } else {
+            listenedAlbums.put(album.getName(), 1);
+        }
+    }
+
+    public void addFan(User user) {
+        if (!fans.contains(user.getUsername())) {
+            fans.add(user.getUsername());
+        }
+    }
+
+    @Override
+    public boolean noWrapper() {
+        return listenedSongs.isEmpty();
     }
 }

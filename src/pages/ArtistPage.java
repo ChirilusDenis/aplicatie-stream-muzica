@@ -11,37 +11,40 @@ import tools.Command;
 import java.util.ArrayList;
 
 @Getter @Setter
-public class ArtistPage implements Visitable{
+public class ArtistPage implements Visitable {
     private ArrayList<Merch> merches = new ArrayList<>();
     private ArrayList<Album> albums;
     private ArrayList<Event> events = new ArrayList<>();
 
     private User owner;
 
-    public ArtistPage(User owner, ArrayList<Album> albums) {
+    public ArtistPage(final User owner, final ArrayList<Album> albums) {
         this.albums = albums;
         this.owner = owner;
     }
 
-    public boolean hasMerch(String name) {
-        for (Merch m : merches) {
-            if(m.getName().equals(name)) {
+    /** checks if this page has merch with the specified name */
+    public boolean hasMerch(final String name) {
+        for (Merch merch : merches) {
+            if (merch.getName().equals(name)) {
                 return true;
             }
         }
         return false;
     }
 
-    public boolean hasEvent(String name) {
-        for (Event e : events) {
-            if(e.getName().equals(name)) {
+    /** checks if this page has an event with the specified name */
+    public boolean hasEvent(final String name) {
+        for (Event event : events) {
+            if (event.getName().equals(name)) {
                 return true;
             }
         }
         return false;
     }
 
-    public void removeEvent(Command cmd, ObjectNode node) {
+    /** removes a specified event and returns the appropriate message */
+    public void removeEvent(final Command cmd, final ObjectNode node) {
         if (!this.hasEvent(cmd.getName())) {
             node.put("message", cmd.getUsername() + " doesn't have an event with the given name.");
         } else {
@@ -50,7 +53,8 @@ public class ArtistPage implements Visitable{
         }
     }
 
-    public void addMerch(Command cmd, ObjectNode node) {
+    /** adds a new merch if possible and returns the appropriate message */
+    public void addMerch(final Command cmd, final ObjectNode node) {
         if (hasMerch(cmd.getName())) {
             node.put("message", cmd.getUsername() + " has merchandise with the same name.");
         } else if (cmd.getPrice() < 0) {
@@ -61,10 +65,11 @@ public class ArtistPage implements Visitable{
         }
     }
 
-    public void addEvent(Command cmd, ObjectNode node) {
+    /** adds a new event if possible and returns the appropriate message */
+    public void addEvent(final Command cmd, final ObjectNode node) {
         if (this.hasEvent(cmd.getName())) {
             node.put("message", cmd.getUsername() + " has another event with the same name.");
-        } else if (!Date.isDateOK(cmd.getDate())) {// check date validity
+        } else if (!Date.isDateOK(cmd.getDate())) {
             node.put("message", "Event for " + cmd.getUsername() + " does not have a valid date.");
         } else {
             events.add(new Event(cmd.getName(), cmd.getDate(), cmd.getDescription()));
@@ -72,8 +77,9 @@ public class ArtistPage implements Visitable{
         }
     }
 
+    /** accepts a visitor for page printing */
     @Override
-    public String accept(Visitor visitor) {
+    public String accept(final Visitor visitor) {
         return visitor.visit(this);
     }
 }

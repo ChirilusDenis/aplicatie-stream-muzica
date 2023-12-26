@@ -1,9 +1,8 @@
 package tools;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import entities.PodcastEpisode;
-import entities.Song;
-import entities.User;
+import entities.*;
+import entitycolections.Album;
 import entitycolections.Playlist;
 import entitycolections.Podcast;
 import lombok.Getter;
@@ -20,8 +19,8 @@ public final class MusicPlayer {
     private boolean shuffle;
     private int repeat = 0;
     private String loaded = "";
-    private int remainingTime;
-    private int lastRecordedTime;
+    private int remainingTime = 0;
+    private int lastRecordedTime = 0;
     private Podcast crtPd;
     private PodcastEpisode crtEp;
     private int whatIsLoaded = -1;
@@ -31,16 +30,18 @@ public final class MusicPlayer {
     private ArrayList<Integer> shuffleList = new ArrayList<>();
     private int nowInPlaylist;
     private int ninety = 90;
-    
+
     private User ownedBy;
     private User audioSourceUser = null;
 
-    public MusicPlayer(User user) {
+    public MusicPlayer(final User user) {
         this.ownedBy = user;
     }
 
     /** loads the audio sources specified by name, be it song, playlist or podcast*/
     public void load(final String name, final int ldTime, final int whatIsLoaded) {
+//        this.updateTime(ldTime);
+
         this.whatIsLoaded = whatIsLoaded;
         this.paused = false;
         this.shuffle = false;
@@ -50,6 +51,8 @@ public final class MusicPlayer {
         if (whatIsLoaded == 0) {
             this.loaded = name;
             crtSong = DataBase.findSong(name);
+            listenToSong();
+            listenToAlbum(DataBase.findPlaylist(crtSong.getAlbum()));
             crtSong.usingThis(1);
             audioSourceUser = DataBase.findUser(crtSong.getArtist());
             remainingTime = crtSong.getDuration();
@@ -63,7 +66,8 @@ public final class MusicPlayer {
                 song.usingThis(1);
             }
             crtSong = crtPlaylist.getSongsfull().get(0);
-//            crtSong.usingThis(1);
+            listenToAlbum(crtPlaylist);
+            listenToSong();
             remainingTime = crtSong.getDuration();
             loaded = crtSong.getName();
             for (int i = 0; i < crtPlaylist.getSongsfull().size(); i++) {
@@ -82,10 +86,81 @@ public final class MusicPlayer {
                 remainingTime = crtEp.getDuration();
             }
 
+            listenToPodcast();
             loaded = crtEp.getName();
         }
         if (audioSourceUser != null) {
             audioSourceUser.useThis(1);
+        }
+    }
+
+    private void listenToPodcast() {
+        if (crtPd != null) {
+            if (ownedBy.getListenedPodcasts().containsKey(crtPd.getName())) {
+                Integer numListens = ownedBy.getListenedPodcasts().get(crtPd.getName());
+                ownedBy.getListenedPodcasts().replace(crtPd.getName(), numListens + 1);
+            } else {
+                ownedBy.getListenedPodcasts().put(crtPd.getName(), 1);
+            }
+
+            Host host = (Host) DataBase.findUser(crtPd.getOwner());
+            if (host == null) {
+                host = DataBase.getTempHost(crtPd.getOwner());
+                if (host == null) {
+                    host = new Host(crtPd.getOwner(), "", 0);
+                    DataBase.getDB().getTempHosts().add(host);
+                }
+            }
+            host.addListenedEpisodes(crtEp);
+            host.setListeners(host.getListeners() + 1);
+        }
+    }
+
+    private void listenToSong() {
+        if (crtSong != null) {
+            if (ownedBy.getListenedSongs().containsKey(crtSong.getName())) {
+                Integer numListens = ownedBy.getListenedSongs().get(crtSong.getName());
+                ownedBy.getListenedSongs().replace(crtSong.getName(), numListens + 1);
+            } else {
+                ownedBy.getListenedSongs().put(crtSong.getName(), 1);
+            }
+            if (ownedBy.getListenedGenres().containsKey(crtSong.getGenre())) {
+                Integer numListens = ownedBy.getListenedGenres().get(crtSong.getGenre());
+                ownedBy.getListenedGenres().replace(crtSong.getGenre(), numListens + 1);
+            } else {
+                ownedBy.getListenedGenres().put(crtSong.getGenre(), 1);
+            }
+            if (ownedBy.getListenedArtist().containsKey(crtSong.getArtist())) {
+                Integer numListens = ownedBy.getListenedArtist().get(crtSong.getArtist());
+                ownedBy.getListenedArtist().replace(crtSong.getArtist(), numListens + 1);
+            } else {
+                ownedBy.getListenedArtist().put(crtSong.getArtist(), 1);
+            }
+
+            Artist artist = (Artist) DataBase.findUser(crtSong.getArtist());
+            if (artist != null) {
+                artist.addListenedSong(crtSong);
+                artist.addFan(ownedBy);
+            }
+        }
+    }
+
+    private void listenToAlbum(Playlist playlist) {
+        if (playlist != null) {
+            if (DataBase.isAlbum(playlist)) {
+                if (ownedBy.getListenedAlbums().containsKey(playlist.getName())) {
+                    Integer numListens = ownedBy.getListenedAlbums().get(playlist.getName());
+                    ownedBy.getListenedAlbums().replace(playlist.getName(), numListens + 1);
+                } else {
+                    ownedBy.getListenedAlbums().put(playlist.getName(), 1);
+                }
+
+                Artist artist = (Artist) DataBase.findUser(playlist.getOwner());
+                if (artist != null) {
+                    artist.addListenedAlbum((Album) playlist);
+                    artist.addFan(ownedBy);
+                }
+            }
         }
     }
 
@@ -148,6 +223,8 @@ public final class MusicPlayer {
                     case 0:
                         switch (repeat) {
                             case 0:
+//                                listenToSong();
+//                                listenToAlbum(DataBase.findPlaylist(crtSong.getAlbum()));
                                 unload();
                                 break;
 
@@ -163,20 +240,23 @@ public final class MusicPlayer {
                             default:
                                 break;
                         }
+                        listenToSong();
+                        if (crtSong != null) {
+                            listenToAlbum(DataBase.findPlaylist(crtSong.getAlbum()));
+                        }
                         break;
 
                     case 1:
                         switch (repeat) {
                             case 0:
                                 if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
-//                                    crtSong.usingThis(-1);
+//                                    listenToAlbum(crtPlaylist);
+//                                    listenToSong();
                                     unload();
                                 } else {
                                     nowInPlaylist++;
-//                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
-//                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 }
@@ -185,18 +265,14 @@ public final class MusicPlayer {
                             case 1:
                                 if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
                                     nowInPlaylist = 0;
-//                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
-//                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 } else {
                                     nowInPlaylist++;
-//                                    crtSong.usingThis(-1);
                                     crtSong = crtPlaylist.getSongsfull().get(
                                             shuffleList.get(nowInPlaylist));
-//                                    crtSong.usingThis(1);
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
                                 }
@@ -208,6 +284,8 @@ public final class MusicPlayer {
                             default:
                                 break;
                         }
+                        listenToAlbum(crtPlaylist);
+                        listenToSong();
                         break;
 
                     case 2:
@@ -219,6 +297,10 @@ public final class MusicPlayer {
                                 } else {
                                     crtEp = crtPd.getEpisodesFull().get(
                                             crtPd.getEpisodesFull().indexOf(crtEp) + 1);
+                                    Host host = (Host) DataBase.findUser(crtPd.getOwner());
+                                    if (host != null) {
+                                        host.addListenedEpisodes(crtEp);
+                                    }
                                     remainingTime = remainingTime + crtEp.getDuration();
                                     loaded = crtEp.getName();
                                 }
@@ -226,11 +308,19 @@ public final class MusicPlayer {
 
                             case 1:
                                 remainingTime = remainingTime + crtEp.getDuration();
+                                Host host = (Host) DataBase.findUser(crtPd.getOwner());
+                                if (host != null) {
+                                    host.addListenedEpisodes(crtEp);
+                                }
                                 repeat = 0;
                                 break;
 
                             case 2:
                                 remainingTime = remainingTime + crtEp.getDuration();
+                                Host host1 = (Host) DataBase.findUser(crtPd.getOwner());
+                                if (host1 != null) {
+                                    host1.addListenedEpisodes(crtEp);
+                                }
                                 break;
 
                             default: break;
@@ -267,7 +357,7 @@ public final class MusicPlayer {
     }
 
     /** moves the time forward by 90 seconds*/
-    public void forward(final int crtTime) {
+    public void forward() {
         remainingTime = remainingTime - ninety;
         if (remainingTime < 0) {
             remainingTime = 0;
@@ -277,7 +367,7 @@ public final class MusicPlayer {
     }
 
     /** moves the time backwards by 90 seconds*/
-    public void backwards(final int crtTime) {
+    public void backwards() {
         remainingTime = remainingTime + ninety;
         if (remainingTime > crtEp.getDuration()) {
             remainingTime = crtEp.getDuration();
@@ -296,7 +386,7 @@ public final class MusicPlayer {
 
     /** moves to the previous audio file or plays the current one from the start,
      * depending on the situation*/
-    public void prev(final int crtTime) {
+    public void prev() {
         paused = false;
         switch (whatIsLoaded) {
             case 0:
@@ -319,7 +409,8 @@ public final class MusicPlayer {
                         || crtEp.getDuration() >= remainingTime + 1) {
                     remainingTime = crtEp.getDuration();
                 } else {
-                    crtEp = crtPd.getEpisodesFull().get((crtPd.getEpisodesFull().indexOf(crtEp) - 1));
+                    crtEp = crtPd.getEpisodesFull().get(
+                            (crtPd.getEpisodesFull().indexOf(crtEp) - 1));
                     remainingTime = crtEp.getDuration();
                     loaded = crtEp.getName();
                 }
@@ -346,7 +437,8 @@ public final class MusicPlayer {
         return shuffle;
     }
 
-    public void doPlayPause(Command cmd, ObjectNode node) {
+    /** handles the play pause cases and returns the appropriate message */
+    public void doPlayPause(final Command cmd, final ObjectNode node) {
         this.updateTime(cmd.getTimestamp());
         if (this.getLoaded().isEmpty()) {
             node.put("message",
@@ -361,7 +453,8 @@ public final class MusicPlayer {
         }
     }
 
-    public void doRepeat(Command cmd, ObjectNode node) {
+    /** handles the repeat status change cases and returns the appropriate message */
+    public void doRepeat(final Command cmd, final ObjectNode node) {
         String repeatStatus = "";
         this.updateTime(cmd.getTimestamp());
         if (this.getLoaded().isEmpty()) {
@@ -395,7 +488,8 @@ public final class MusicPlayer {
         }
     }
 
-    public void doForward(Command cmd, ObjectNode node) {
+    /** handles the forward cases and returns the appropriate message */
+    public void doForward(final Command cmd, final ObjectNode node) {
         updateTime(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message", "Please load a source before attempting to forward.");
@@ -403,11 +497,12 @@ public final class MusicPlayer {
             node.put("message", "The loaded source is not a podcast.");
         } else {
             node.put("message", "Skipped forward successfully.");
-            this.forward(cmd.getTimestamp());
+            this.forward();
         }
     }
 
-    public void doBackwards(Command cmd, ObjectNode node) {
+    /** handles the backwards cases and returns the appropriate message */
+    public void doBackwards(final Command cmd, final ObjectNode node) {
         updateTime(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message", "Please load a source before skipping forward.");
@@ -415,11 +510,12 @@ public final class MusicPlayer {
             node.put("message", "The loaded source is not a podcast.");
         } else {
             node.put("message", "Rewound successfully.");
-            this.backwards(cmd.getTimestamp());
+            this.backwards();
         }
     }
 
-    public void doNext(Command cmd, ObjectNode node) {
+    /** handles the next command cases and returns the appropriate message */
+    public void doNext(final Command cmd, final ObjectNode node) {
         updateTime(cmd.getTimestamp());
         this.next(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
@@ -431,20 +527,22 @@ public final class MusicPlayer {
         }
     }
 
-    public void doPrev(Command cmd, ObjectNode node) {
+    /** handles the prev command cases and returns the appropriate message */
+    public void doPrev(final Command cmd, final ObjectNode node) {
         updateTime(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message",
                     "Please load a source before returning to the previous track.");
         } else {
-            this.prev(cmd.getTimestamp());
+            this.prev();
             node.put("message",
                     "Returned to previous track successfully. The current track is "
                             + this.getLoaded() + ".");
         }
     }
 
-    public void doShuffle(Command cmd, ObjectNode node) {
+    /** handles the shuffle cases and returns the appropriate message */
+    public void doShuffle(final Command cmd, final ObjectNode node) {
         this.updateTime(cmd.getTimestamp());
         if (this.getWhatIsLoaded() == -1) {
             node.put("message", "Please load a source before using the shuffle function.");

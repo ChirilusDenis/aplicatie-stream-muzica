@@ -6,10 +6,10 @@ import entitycolections.Album;
 import entitycolections.Playlist;
 import entitycolections.Podcast;
 
-public class PagePrinterVisitor implements Visitor{
+public final class PagePrinterVisitor implements Visitor {
 
     @Override
-    public String visit(Page page) {
+    public String visit(final Page page) {
         String songs = "";
         for (Song s : page.getLikedSongs()) {
             songs = songs + s.getName() + ", ";
@@ -28,7 +28,7 @@ public class PagePrinterVisitor implements Visitor{
     }
 
     @Override
-    public String visit(LikedContentPage page) {
+    public String visit(final LikedContentPage page) {
         String songs = "";
         for (Song s : page.getLikedSongs()) {
             songs = songs + s.getName() + " - " + s.getArtist() + ", ";
@@ -47,7 +47,7 @@ public class PagePrinterVisitor implements Visitor{
     }
 
     @Override
-    public String visit(HostPage page) {
+    public String visit(final HostPage page) {
         String podcastStr = "";
         for (Podcast p : page.getPodcasts()) {
             podcastStr = podcastStr + p.getName() + ":\n\t[";
@@ -65,7 +65,8 @@ public class PagePrinterVisitor implements Visitor{
 
         String announcementStr = "";
         for (Announcement announcement : page.getAnnouncements()) {
-            announcementStr = announcementStr + announcement.getName() + ":\n\t" + announcement.getDescription() + ", ";
+            announcementStr = announcementStr + announcement.getName() + ":\n\t"
+                    + announcement.getDescription() + ", ";
         }
         if (!announcementStr.equals("")) {
             announcementStr = announcementStr.substring(0, announcementStr.length() - 2);
@@ -74,30 +75,33 @@ public class PagePrinterVisitor implements Visitor{
     }
 
     @Override
-    public String visit(ArtistPage page) {
-        String albs ="";
+    public String visit(final ArtistPage page) {
+        String albs = "";
         for (Album a : page.getAlbums()) {
             albs = albs + a.getName() + ", ";
         }
-        if(!albs.equals("")) {
+        if (!albs.equals("")) {
             albs = albs.substring(0, albs.length() - 2);
         }
 
-        String merch ="";
+        String merch = "";
         for (Merch a : page.getMerches()) {
-            merch = merch + a.getName() + " - " + a.getPrice() + ":\n\t" + a.getDescription() + ", ";
+            merch = merch + a.getName() + " - " + a.getPrice()
+                    + ":\n\t" + a.getDescription() + ", ";
         }
-        if(!merch.equals("")) {
+        if (!merch.equals("")) {
             merch = merch.substring(0, merch.length() - 2);
         }
 
         String event = "";
         for (Event e : page.getEvents()) {
-            event = event + e.getName() + " - " + e.getDate() + ":\n\t" + e.getDescription() + ", ";
+            event = event + e.getName() + " - " + e.getDate()
+                    + ":\n\t" + e.getDescription() + ", ";
         }
-        if(!event.equals("")) {
+        if (!event.equals("")) {
             event = event.substring(0, event.length() - 2);
         }
-        return "Albums:\n\t[" + albs + "]\n\nMerch:\n\t[" + merch + "]\n\nEvents:\n\t[" + event + "]";
+        return "Albums:\n\t[" + albs + "]\n\nMerch:\n\t["
+                + merch + "]\n\nEvents:\n\t[" + event + "]";
     }
 }

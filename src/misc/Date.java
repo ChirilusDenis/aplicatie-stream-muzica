@@ -1,8 +1,10 @@
 package misc;
 
-public class Date {
+public final class Date {
+    private Date() { }
 
-    public static boolean isDateOK(String date) {
+    /** checks if a date passed to it is valid */
+    public static boolean isDateOK(final String date) {
         int day = Integer.valueOf(date.substring(0, 2));
         int month = Integer.valueOf(date.substring(3, 5));
         int year = Integer.valueOf(date.substring(6));

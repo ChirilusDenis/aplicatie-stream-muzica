@@ -1,28 +1,34 @@
 package entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import entitycolections.Podcast;
 import lombok.Getter;
+import lombok.Setter;
+import misc.WrappedVisitor;
 import pages.Announcement;
 import pages.HostPage;
 import tools.Command;
 import tools.DataBase;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
-@Getter
-public class Host extends User{
+@Getter @Setter
+public class Host extends User {
     @JsonIgnore
-    private ArrayList<Podcast> podcasts= new ArrayList<>();
+    private ArrayList<Podcast> podcasts = new ArrayList<>();
     @JsonIgnore
     private HostPage hostPage = new HostPage(this, podcasts);
-    public Host(String username, String city, int age) {
+
+    private final HashMap<String, Integer> listenedEpisodes = new HashMap<>();
+    private int listeners = 0;
+    public Host(final String username, final String city, final int age) {
         super(username, city, age);
     }
 
-    public boolean hasPodcast(Podcast podcast) {
+    /** checks if the host has a specified podcast */
+    public boolean hasPodcast(final Podcast podcast) {
         for (Podcast p : podcasts) {
             if (p.getName().equals(podcast.getName())) {
                 return true;
@@ -31,11 +37,13 @@ public class Host extends User{
         return false;
     }
 
-    public void addPodcast(Command cmd, ObjectNode node) {
+    /** adds a podcast if possible and returns the appropriate message */
+    public void addPodcast(final Command cmd, final ObjectNode node) {
         Podcast newPodcast = new Podcast(this.getUsername(), cmd.getName(), cmd.getEpisodes());
         if (this.hasPodcast(newPodcast)) {
-            node.put("message", this.getUsername() + " has another podcast with the same name.");
-        } else if (false) { // check if double episodes
+            node.put("message", this.getUsername()
+                    + " has another podcast with the same name.");
+        } else if (newPodcast.hasEpisodeTwice()) {
             node.put("message", this.getUsername() + " has the same episode in this podcast.");
         } else {
             this.podcasts.add(newPodcast);
@@ -43,25 +51,31 @@ public class Host extends User{
         }
     }
 
-    public void addAnnouncement(Command cmd, ObjectNode node) {
+    /** adds an announcement if possible and returns the appropriate message */
+    public void addAnnouncement(final Command cmd, final ObjectNode node) {
         if (this.hostPage.hasAnnouncement(cmd.getName())) {
-            node.put("message", this.getUsername() + " has already added an announcement with this name");
+            node.put("message", this.getUsername()
+                    + " has already added an announcement with this name");
         } else {
             node.put("message", this.getUsername() + " has successfully added new announcement.");
-            this.hostPage.getAnnouncements().add(new Announcement(cmd.getName(), cmd.getDescription()));
+            this.hostPage.getAnnouncements().add(
+                    new Announcement(cmd.getName(), cmd.getDescription()));
         }
     }
 
-    public void removeAnnouncement(Command cmd, ObjectNode node) {
+    /** removes a certain podcast if possible and returns the appropriate message */
+    public void removeAnnouncement(final Command cmd, final ObjectNode node) {
         if (!this.hostPage.hasAnnouncement(cmd.getName())) {
             node.put("message", this.getUsername() + " has no announcement with the given name.");
         } else {
-            node.put("message", this.getUsername() + " has successfully deleted the announcement.");
+            node.put("message", this.getUsername()
+                    + " has successfully deleted the announcement.");
             this.hostPage.getAnnouncements().removeIf((A) -> A.getName().equals(cmd.getName()));
         }
     }
 
-    public boolean hasPodcast(String name) {
+    /** checks if the host has a podcast with the specified name */
+    public boolean hasPodcast(final String name) {
         for (Podcast podcast : this.podcasts) {
             if (podcast.getName().equals(name)) {
                 return true;
@@ -70,9 +84,11 @@ public class Host extends User{
         return false;
     }
 
-    public void removePodcast(Command cmd, ObjectNode node) {
+    /** removes a podcast and returns the appropriate message */
+    public void removePodcast(final Command cmd, final ObjectNode node) {
         if (!this.hasPodcast(cmd.getName())) {
-            node.put("message", this.getUsername() + " doesn't have a podcast with the given name.");
+            node.put("message", this.getUsername()
+                    + " doesn't have a podcast with the given name.");
         } else {
             Podcast podcast = DataBase.findPodcast(cmd.getName());
             if (podcast.getNumUsingThis() != 0) {
@@ -84,14 +100,32 @@ public class Host extends User{
         }
     }
 
+    /** checks if this host has any content in use by other users */
     public boolean canBeDeleted() {
-        int sum = 0;
+        int sumOfUses = 0;
         for (Podcast podcast : podcasts) {
-            sum = sum + podcast.getNumUsingThis();
+            sumOfUses = sumOfUses + podcast.getNumUsingThis();
         }
-        if (sum == 0) {
+        if (sumOfUses == 0) {
             return true;
         }
         return false;
+    }
+    public void accept(WrappedVisitor visitor, ObjectNode node) {
+        visitor.visit(this, node);
+    }
+
+    public void addListenedEpisodes(PodcastEpisode episode) {
+        if (listenedEpisodes.containsKey(episode.getName())) {
+            Integer numListens = listenedEpisodes.get(episode.getName());
+            listenedEpisodes.replace(episode.getName(), numListens + 1);
+        } else {
+            listenedEpisodes.put(episode.getName(), 1);
+        }
+    }
+
+    @Override
+    public boolean noWrapper() {
+        return listenedEpisodes.isEmpty();
     }
 }

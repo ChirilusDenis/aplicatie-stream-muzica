@@ -1,5 +1,6 @@
 package observer;
 
 public interface Observer {
-    public void update(int crtTime);
+    /** for implementing user player update method */
+    void update(int crtTime);
 }

@@ -1,5 +1,6 @@
 package pages;
 
 public interface Visitable {
-    public String accept(Visitor visitor);
+    /** accepts a page printer visitor */
+    String accept(Visitor visitor);
 }
