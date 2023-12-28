@@ -24,6 +24,8 @@ public class Host extends User {
     private final HashMap<String, Integer> listenedEpisodes = new HashMap<>();
     private final ArrayList<User> fans = new ArrayList<>();
     private int listeners = 0;
+    private ArrayList<User> subscribers = new ArrayList<>();
+
     public Host(final String username, final String city, final int age) {
         super(username, city, age);
     }
@@ -49,6 +51,10 @@ public class Host extends User {
         } else {
             this.podcasts.add(newPodcast);
             node.put("message", this.getUsername() + " has added new podcast successfully.");
+            for (User user : subscribers) {
+                user.getNotifications().add(new Notification("New Podcast", "New Podcast from "
+                        + getUsername() + "."));
+            }
         }
     }
 
@@ -61,6 +67,10 @@ public class Host extends User {
             node.put("message", this.getUsername() + " has successfully added new announcement.");
             this.hostPage.getAnnouncements().add(
                     new Announcement(cmd.getName(), cmd.getDescription()));
+            for (User user : subscribers) {
+                user.getNotifications().add(new Notification("New Announcement",
+                        "New Announcement from " + getUsername() + "."));
+            }
         }
     }
 
@@ -134,5 +144,14 @@ public class Host extends User {
         if (!fans.contains(user)) {
             fans.add(user);
         }
+    }
+
+    public boolean addSub(User user) {
+        if (subscribers.contains(user)) {
+            subscribers.remove(user);
+            return false;
+        }
+        subscribers.add(user);
+        return true;
     }
 }

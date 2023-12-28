@@ -341,7 +341,6 @@ public final class MusicPlayer {
                                                 crtPd.getEpisodesFull().indexOf(crtEp) + 1);
                                         Host host = (Host) DataBase.findUser(crtPd.getOwner());
                                         if (host != null) {
-//                                            host.addListenedEpisodes(crtEp);
                                         }
                                         remainingTime = remainingTime + crtEp.getDuration();
                                         loaded = crtEp.getName();
@@ -352,7 +351,6 @@ public final class MusicPlayer {
                                     remainingTime = remainingTime + crtEp.getDuration();
                                     Host host = (Host) DataBase.findUser(crtPd.getOwner());
                                     if (host != null) {
-//                                        host.addListenedEpisodes(crtEp);
                                     }
                                     repeat = 0;
                                     break;
@@ -361,7 +359,6 @@ public final class MusicPlayer {
                                     remainingTime = remainingTime + crtEp.getDuration();
                                     Host host1 = (Host) DataBase.findUser(crtPd.getOwner());
                                     if (host1 != null) {
-//                                        host1.addListenedEpisodes(crtEp);
                                     }
                                     break;
 

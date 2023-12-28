@@ -22,6 +22,7 @@ public final class Artist extends User implements Comparable {
     private HashMap<String, Integer> listenedSongs = new HashMap<>();
     private HashMap<String, Integer> fans = new HashMap<>();
     private int listeners = 0;
+    private ArrayList<User> subscribers = new ArrayList<>();
 
 
     public Artist(final String username, final String city, final int age) {
@@ -84,6 +85,10 @@ public final class Artist extends User implements Comparable {
             albums.add(album);
             DataBase.getDB().getAllSongs().addAll(album.getSongsfull());
             node.put("message", this.getUsername() + " has added new album successfully.");
+            for (User user : subscribers) {
+                user.getNotifications().add(new Notification("New Album", "New Album from "
+                        + getUsername() + "."));
+            }
         }
     }
 
@@ -136,5 +141,14 @@ public final class Artist extends User implements Comparable {
     @Override
     public boolean noWrapper() {
         return listenedSongs.isEmpty();
+    }
+
+    public boolean addSub(User user) {
+        if (subscribers.contains(user)) {
+            subscribers.remove(user);
+            return false;
+        }
+        subscribers.add(user);
+        return true;
     }
 }
