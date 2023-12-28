@@ -20,7 +20,7 @@ public final class Artist extends User implements Comparable {
 
     private HashMap<String, Integer> listenedAlbums = new HashMap<>();
     private HashMap<String, Integer> listenedSongs = new HashMap<>();
-    private ArrayList<String> fans = new ArrayList<>();
+    private HashMap<String, Integer> fans = new HashMap<>();
     private int listeners = 0;
 
 
@@ -125,8 +125,11 @@ public final class Artist extends User implements Comparable {
     }
 
     public void addFan(User user) {
-        if (!fans.contains(user.getUsername())) {
-            fans.add(user.getUsername());
+        if (fans.containsKey(user.getUsername())) {
+            Integer numListens = fans.get(user.getUsername());
+            fans.replace(user.getUsername(), numListens + 1);
+        } else {
+            fans.put(user.getUsername(), 1);
         }
     }
 

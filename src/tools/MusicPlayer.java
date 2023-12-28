@@ -7,10 +7,12 @@ import entitycolections.Playlist;
 import entitycolections.Podcast;
 import lombok.Getter;
 import lombok.Setter;
+import misc.PremiumStatus;
 import misc.Status;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Random;
 
 @Getter @Setter
@@ -34,13 +36,17 @@ public final class MusicPlayer {
     private User ownedBy;
     private User audioSourceUser = null;
 
+    private ArrayList<Song> songHistory = new ArrayList<>();
+    private ArrayList<Song> songHistoryAdd = new ArrayList<>();
+    private ArrayList<Integer> adds = new ArrayList<>();
+    private HashMap<PodcastEpisode, Integer> pastEp = new HashMap<>();
+
     public MusicPlayer(final User user) {
         this.ownedBy = user;
     }
 
     /** loads the audio sources specified by name, be it song, playlist or podcast*/
     public void load(final String name, final int ldTime, final int whatIsLoaded) {
-//        this.updateTime(ldTime);
 
         this.whatIsLoaded = whatIsLoaded;
         this.paused = false;
@@ -79,14 +85,27 @@ public final class MusicPlayer {
             crtPd = DataBase.findPodcast(name);
             crtPd.usingThis(1);
             audioSourceUser = DataBase.findUser(crtPd.getOwner());
-            if (crtPd.getEpisodesFull().contains(crtEp)) {
-                remainingTime = lastEpTime;
-            } else {
+
+            boolean found = false;
+            for (PodcastEpisode episode : crtPd.getEpisodesFull()) {
+                if (pastEp.containsKey(episode)) {
+                    crtEp = episode;
+                    remainingTime = pastEp.get(crtEp);
+                    pastEp.remove(crtEp);
+                    found = true;
+                    break;
+                }
+            }
+
+//            if (crtPd.getEpisodesFull().contains(crtEp)) {
+//                remainingTime = lastEpTime;
+//            } else {
+            if (!found) {
                 crtEp = crtPd.getEpisodesFull().get(0);
                 remainingTime = crtEp.getDuration();
             }
 
-            listenToPodcast();
+            listenToEpisode();
             loaded = crtEp.getName();
         }
         if (audioSourceUser != null) {
@@ -94,13 +113,13 @@ public final class MusicPlayer {
         }
     }
 
-    private void listenToPodcast() {
-        if (crtPd != null) {
-            if (ownedBy.getListenedPodcasts().containsKey(crtPd.getName())) {
-                Integer numListens = ownedBy.getListenedPodcasts().get(crtPd.getName());
-                ownedBy.getListenedPodcasts().replace(crtPd.getName(), numListens + 1);
+    private void listenToEpisode() {
+        if (crtEp != null) {
+            if (ownedBy.getListenedEpisodes().containsKey(crtEp.getName())) {
+                Integer numListens = ownedBy.getListenedEpisodes().get(crtEp.getName());
+                ownedBy.getListenedEpisodes().replace(crtEp.getName(), numListens + 1);
             } else {
-                ownedBy.getListenedPodcasts().put(crtPd.getName(), 1);
+                ownedBy.getListenedEpisodes().put(crtEp.getName(), 1);
             }
 
             Host host = (Host) DataBase.findUser(crtPd.getOwner());
@@ -112,7 +131,8 @@ public final class MusicPlayer {
                 }
             }
             host.addListenedEpisodes(crtEp);
-            host.setListeners(host.getListeners() + 1);
+            host.addFan(ownedBy);
+            host.setListeners(host.getFans().size());
         }
     }
 
@@ -137,10 +157,17 @@ public final class MusicPlayer {
                 ownedBy.getListenedArtist().put(crtSong.getArtist(), 1);
             }
 
+            DataBase.addListenedArtist(crtSong.getArtist());
             Artist artist = (Artist) DataBase.findUser(crtSong.getArtist());
             if (artist != null) {
                 artist.addListenedSong(crtSong);
                 artist.addFan(ownedBy);
+            }
+
+            if (ownedBy.getPrStatus().equals(PremiumStatus.premium)) {
+                songHistory.add(crtSong);
+            } else {
+                songHistoryAdd.add(crtSong);
             }
         }
     }
@@ -167,7 +194,8 @@ public final class MusicPlayer {
     /** continues the functionality of the player from the last time it was called*/
     public void updateTime(final int crtTime) {
         run(crtTime);
-        while (remainingTime < 0 && ownedBy.getStatus().equals(Status.online)) {
+        while (remainingTime <= 0 && ownedBy.getStatus().equals(Status.online)
+                            && whatIsLoaded != -1) {
             run(crtTime);
         }
     }
@@ -199,6 +227,8 @@ public final class MusicPlayer {
         }
         if (whatIsLoaded == 2) {
             crtPd.usingThis(-1);
+            pastEp.put(crtEp, remainingTime);
+
         }
         audioSourceUser = null;
         remainingTime = 0;
@@ -211,6 +241,8 @@ public final class MusicPlayer {
         nowInPlaylist = 0;
         shuffleList.clear();
         shuffle = false;
+
+        crtEp = null;
     }
 
     /** represents the player running for a single action and
@@ -218,118 +250,131 @@ public final class MusicPlayer {
     private void run(final int crtTime) {
         if (!paused && ownedBy.getStatus().equals(Status.online)) {
             remainingTime = remainingTime - crtTime + lastRecordedTime;
-            if (remainingTime < 0) {
-                switch (whatIsLoaded) {
-                    case 0:
-                        switch (repeat) {
-                            case 0:
-//                                listenToSong();
-//                                listenToAlbum(DataBase.findPlaylist(crtSong.getAlbum()));
-                                unload();
-                                break;
-
-                            case 1:
-                                remainingTime = remainingTime + crtSong.getDuration();
-                                repeat = 0;
-                                break;
-
-                            case 2:
-                                remainingTime = remainingTime + crtSong.getDuration();
-                                break;
-
-                            default:
-                                break;
-                        }
-                        listenToSong();
-                        if (crtSong != null) {
-                            listenToAlbum(DataBase.findPlaylist(crtSong.getAlbum()));
-                        }
-                        break;
-
-                    case 1:
-                        switch (repeat) {
-                            case 0:
-                                if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
-//                                    listenToAlbum(crtPlaylist);
-//                                    listenToSong();
+            if (remainingTime <= 0) {
+                if (!adds.isEmpty()) {
+                    loaded = "Ad Break";
+                    remainingTime = remainingTime + 10;
+                    int price = adds.get(0);
+                    adds.remove(0);
+                    DataBase.distributeProfits(songHistoryAdd, (double) price);
+                    if (songHistoryAdd.size() > 0) {
+                        songHistoryAdd.remove(songHistoryAdd.size() - 1);
+                    }
+                    songHistoryAdd.clear();
+                } else {
+                    switch (whatIsLoaded) {
+                        case 0:
+                            switch (repeat) {
+                                case 0:
                                     unload();
-                                } else {
-                                    nowInPlaylist++;
-                                    crtSong = crtPlaylist.getSongsfull().get(
-                                            shuffleList.get(nowInPlaylist));
+                                    break;
+
+                                case 1:
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
-                                }
-                                break;
+                                    repeat = 0;
+                                    break;
 
-                            case 1:
-                                if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
-                                    nowInPlaylist = 0;
-                                    crtSong = crtPlaylist.getSongsfull().get(
-                                            shuffleList.get(nowInPlaylist));
+                                case 2:
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
-                                } else {
-                                    nowInPlaylist++;
-                                    crtSong = crtPlaylist.getSongsfull().get(
-                                            shuffleList.get(nowInPlaylist));
+                                    break;
+
+                                default:
+                                    break;
+                            }
+                            listenToSong();
+                            if (crtSong != null) {
+                                listenToAlbum(DataBase.findPlaylist(crtSong.getAlbum()));
+                            }
+                            break;
+
+                        case 1:
+                            switch (repeat) {
+                                case 0:
+                                    if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
+                                        unload();
+                                    } else {
+                                        nowInPlaylist++;
+                                        crtSong = crtPlaylist.getSongsfull().get(
+                                                shuffleList.get(nowInPlaylist));
+                                        remainingTime = remainingTime + crtSong.getDuration();
+                                        loaded = crtSong.getName();
+                                    }
+                                    break;
+
+                                case 1:
+                                    if (nowInPlaylist == crtPlaylist.getSongsfull().size() - 1) {
+                                        nowInPlaylist = 0;
+                                        crtSong = crtPlaylist.getSongsfull().get(
+                                                shuffleList.get(nowInPlaylist));
+                                        remainingTime = remainingTime + crtSong.getDuration();
+                                        loaded = crtSong.getName();
+                                    } else {
+                                        nowInPlaylist++;
+                                        crtSong = crtPlaylist.getSongsfull().get(
+                                                shuffleList.get(nowInPlaylist));
+                                        remainingTime = remainingTime + crtSong.getDuration();
+                                        loaded = crtSong.getName();
+                                    }
+                                    break;
+
+                                case 2:
                                     remainingTime = remainingTime + crtSong.getDuration();
                                     loaded = crtSong.getName();
-                                }
-                                break;
 
-                            case 2:
-                                remainingTime = remainingTime + crtSong.getDuration();
+                                default:
+                                    break;
+                            }
+                            listenToAlbum(crtPlaylist);
+                            listenToSong();
+                            break;
 
-                            default:
-                                break;
-                        }
-                        listenToAlbum(crtPlaylist);
-                        listenToSong();
-                        break;
+                        case 2:
+                            switch (repeat) {
+                                case 0:
+                                    if (crtEp.equals(crtPd.getEpisodesFull().get(
+                                            crtPd.getEpisodesFull().size() - 1))) {
+                                        unload();
+                                    } else {
+                                        crtEp = crtPd.getEpisodesFull().get(
+                                                crtPd.getEpisodesFull().indexOf(crtEp) + 1);
+                                        Host host = (Host) DataBase.findUser(crtPd.getOwner());
+                                        if (host != null) {
+//                                            host.addListenedEpisodes(crtEp);
+                                        }
+                                        remainingTime = remainingTime + crtEp.getDuration();
+                                        loaded = crtEp.getName();
+                                    }
+                                    break;
 
-                    case 2:
-                        switch (repeat) {
-                            case 0:
-                                if (crtEp.equals(crtPd.getEpisodesFull().get(
-                                        crtPd.getEpisodesFull().size() - 1))) {
-                                    unload();
-                                } else {
-                                    crtEp = crtPd.getEpisodesFull().get(
-                                            crtPd.getEpisodesFull().indexOf(crtEp) + 1);
+                                case 1:
+                                    remainingTime = remainingTime + crtEp.getDuration();
                                     Host host = (Host) DataBase.findUser(crtPd.getOwner());
                                     if (host != null) {
-                                        host.addListenedEpisodes(crtEp);
+//                                        host.addListenedEpisodes(crtEp);
                                     }
+                                    repeat = 0;
+                                    break;
+
+                                case 2:
                                     remainingTime = remainingTime + crtEp.getDuration();
-                                    loaded = crtEp.getName();
-                                }
-                                break;
+                                    Host host1 = (Host) DataBase.findUser(crtPd.getOwner());
+                                    if (host1 != null) {
+//                                        host1.addListenedEpisodes(crtEp);
+                                    }
+                                    break;
 
-                            case 1:
-                                remainingTime = remainingTime + crtEp.getDuration();
-                                Host host = (Host) DataBase.findUser(crtPd.getOwner());
-                                if (host != null) {
-                                    host.addListenedEpisodes(crtEp);
-                                }
-                                repeat = 0;
-                                break;
+                                default:
+                                    break;
+                            }
+                            listenToEpisode();
+                            break;
 
-                            case 2:
-                                remainingTime = remainingTime + crtEp.getDuration();
-                                Host host1 = (Host) DataBase.findUser(crtPd.getOwner());
-                                if (host1 != null) {
-                                    host1.addListenedEpisodes(crtEp);
-                                }
-                                break;
-
-                            default: break;
-                        }
-                        break;
-
-                    default:
-                        unload();
-                        break;
+                        default:
+                            unload();
+                            break;
+                    }
                 }
             }
         }
@@ -517,13 +562,17 @@ public final class MusicPlayer {
     /** handles the next command cases and returns the appropriate message */
     public void doNext(final Command cmd, final ObjectNode node) {
         updateTime(cmd.getTimestamp());
-        this.next(cmd.getTimestamp());
-        if (this.getWhatIsLoaded() == -1) {
-            node.put("message", "Please load a source before skipping to the next track.");
+        if (loaded.equals("Ad Break")) {
+            node.put("message", "AD");
         } else {
-            node.put("message",
-                    "Skipped to next track successfully. The current track is "
-                            + this.getLoaded() + ".");
+            this.next(cmd.getTimestamp());
+            if (this.getWhatIsLoaded() == -1) {
+                node.put("message", "Please load a source before skipping to the next track.");
+            } else {
+                node.put("message",
+                        "Skipped to next track successfully. The current track is "
+                                + this.getLoaded() + ".");
+            }
         }
     }
 
@@ -554,6 +603,16 @@ public final class MusicPlayer {
             } else {
                 node.put("message", "Shuffle function deactivated successfully.");
             }
+        }
+    }
+
+    public void loadAdd(Integer price, int crtTime, ObjectNode node) {
+        updateTime(crtTime);
+        if (whatIsLoaded == 1 || whatIsLoaded == 0) {
+            adds.add(price);
+            node.put("message", "Ad inserted successfully.");
+        } else {
+            node.put("message", ownedBy.getUsername() + " is not playing any music.");
         }
     }
 }

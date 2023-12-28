@@ -29,7 +29,7 @@ public class WrappedManager implements WrappedVisitor {
         stats.set("topGenres", mapToNode(user.getListenedGenres()));
         stats.set("topSongs", mapToNode(user.getListenedSongs()));
         stats.set("topAlbums", mapToNode(user.getListenedAlbums()));
-        stats.set("topPodcasts", mapToNode(user.getListenedPodcasts()));
+        stats.set("topEpisodes", mapToNode(user.getListenedEpisodes()));
 
         node.set("result", stats);
     }
@@ -38,10 +38,10 @@ public class WrappedManager implements WrappedVisitor {
     public void visit(Artist artist, ObjectNode node) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode stats = objectMapper.createObjectNode();
-        ArrayNode fans = objectMapper.valueToTree(artist.getFans());
+//        ArrayNode fans = objectMapper.valueToTree(artist.getFans());
         stats.set("topAlbums", mapToNode(artist.getListenedAlbums()));
         stats.set("topSongs", mapToNode(artist.getListenedSongs()));
-        stats.putArray("topFans").addAll(fans);
+        stats.putArray("topFans").addAll(mapToNodeWithArray(artist.getFans()));
         stats.put("listeners", artist.getFans().size());
 
         node.set("result", stats);
@@ -63,5 +63,25 @@ public class WrappedManager implements WrappedVisitor {
             node.put(list.get(i).getKey(), list.get(i).getValue());
         }
         return node;
+    }
+
+    public ArrayNode mapToNodeWithArray(HashMap<String, Integer> map) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode node = objectMapper.createObjectNode();
+        ArrayList<String> names = new ArrayList<>();
+        ArrayList<Map.Entry<String, Integer>> list = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            list.add(entry);
+        }
+        list.sort((e1, e2) -> { if (e1.getValue().equals(e2.getValue())) {
+                                    return e1.getKey().compareTo(e2.getKey());
+                                } else {
+                                    return e2.getValue() - e1.getValue();
+                            }});
+        for (int i = 0; i < 5 && i < list.size(); i++) {
+            names.add(list.get(i).getKey());
+        }
+        ArrayNode arrayNode = objectMapper.valueToTree(names);
+        return arrayNode;
     }
 }

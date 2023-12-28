@@ -22,6 +22,7 @@ public class Host extends User {
     private HostPage hostPage = new HostPage(this, podcasts);
 
     private final HashMap<String, Integer> listenedEpisodes = new HashMap<>();
+    private final ArrayList<User> fans = new ArrayList<>();
     private int listeners = 0;
     public Host(final String username, final String city, final int age) {
         super(username, city, age);
@@ -127,5 +128,11 @@ public class Host extends User {
     @Override
     public boolean noWrapper() {
         return listenedEpisodes.isEmpty();
+    }
+
+    public void addFan(User user) {
+        if (!fans.contains(user)) {
+            fans.add(user);
+        }
     }
 }
