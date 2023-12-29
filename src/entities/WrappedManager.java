@@ -9,9 +9,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WrappedManager implements WrappedVisitor {
+public final class WrappedManager implements WrappedVisitor {
+    private final int five = 5;
+
+    /** constructs the wrapped data for a host **/
     @Override
-    public void visit(Host host, ObjectNode node) {
+    public void visit(final Host host, final ObjectNode node) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode stats = objectMapper.createObjectNode();
 
@@ -21,8 +24,9 @@ public class WrappedManager implements WrappedVisitor {
         node.set("result", stats);
     }
 
+    /** constructs the wrapped data for a user **/
     @Override
-    public void visit(User user, ObjectNode node) {
+    public void visit(final User user, final ObjectNode node) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode stats = objectMapper.createObjectNode();
         stats.set("topArtists", mapToNode(user.getListenedArtist()));
@@ -34,54 +38,59 @@ public class WrappedManager implements WrappedVisitor {
         node.set("result", stats);
     }
 
+    /** constructs the wrapped data for an artist **/
     @Override
-    public void visit(Artist artist, ObjectNode node) {
+    public void visit(final Artist artist, final ObjectNode node) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode stats = objectMapper.createObjectNode();
-//        ArrayNode fans = objectMapper.valueToTree(artist.getFans());
         stats.set("topAlbums", mapToNode(artist.getListenedAlbums()));
         stats.set("topSongs", mapToNode(artist.getListenedSongs()));
-        stats.putArray("topFans").addAll(mapToNodeWithArray(artist.getFans()));
+        ArrayNode arrayNode = objectMapper.valueToTree(mapToArray(artist.getFans()));
+        stats.putArray("topFans").addAll(arrayNode);
         stats.put("listeners", artist.getFans().size());
 
         node.set("result", stats);
     }
 
-    public ObjectNode mapToNode(HashMap<String, Integer> map) {
+    /** transforms a map into an array node of fields in the form of
+     * "key" : value **/
+    public ObjectNode mapToNode(final HashMap<String, Integer> map) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode node = objectMapper.createObjectNode();
         ArrayList<Map.Entry<String, Integer>> list = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : map.entrySet()) {
             list.add(entry);
         }
-        list.sort((e1, e2) -> { if (e1.getValue().equals(e2.getValue())) {
+        list.sort((e1, e2) -> {
+                                if (e1.getValue().equals(e2.getValue())) {
                                     return e1.getKey().compareTo(e2.getKey());
                                 } else {
                                     return e2.getValue() - e1.getValue();
-        }});
-        for (int i = 0; i < 5 && i < list.size(); i++) {
+                                }
+        });
+        for (int i = 0; i < five && i < list.size(); i++) {
             node.put(list.get(i).getKey(), list.get(i).getValue());
         }
         return node;
     }
 
-    public ArrayNode mapToNodeWithArray(HashMap<String, Integer> map) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        ObjectNode node = objectMapper.createObjectNode();
+    /** transforms a map into a sorted array node **/
+    public ArrayList<String> mapToArray(final HashMap<String, Integer> map) {
         ArrayList<String> names = new ArrayList<>();
         ArrayList<Map.Entry<String, Integer>> list = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : map.entrySet()) {
             list.add(entry);
         }
-        list.sort((e1, e2) -> { if (e1.getValue().equals(e2.getValue())) {
+        list.sort((e1, e2) -> {
+                                if (e1.getValue().equals(e2.getValue())) {
                                     return e1.getKey().compareTo(e2.getKey());
                                 } else {
                                     return e2.getValue() - e1.getValue();
-                            }});
-        for (int i = 0; i < 5 && i < list.size(); i++) {
+                            }
+        });
+        for (int i = 0; i < five && i < list.size(); i++) {
             names.add(list.get(i).getKey());
         }
-        ArrayNode arrayNode = objectMapper.valueToTree(names);
-        return arrayNode;
+        return names;
     }
 }

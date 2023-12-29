@@ -3,8 +3,10 @@ package pages;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import entities.Artist;
 import entities.Notification;
+import entities.Song;
 import entities.User;
 import entitycolections.Album;
+import entitycolections.Playlist;
 import lombok.Getter;
 import lombok.Setter;
 import misc.Date;
@@ -91,5 +93,12 @@ public class ArtistPage implements Visitable {
     @Override
     public String accept(final Visitor visitor) {
         return visitor.visit(this);
+    }
+
+    /** used for refresh page generalization for all page types **/
+    public void refreshPage(final ArrayList<Song> songs, final ArrayList<Playlist> playlists,
+                            final ArrayList<Song> recomendedSongs,
+                            final ArrayList<Playlist> recomendedPLaylists) {
+
     }
 }

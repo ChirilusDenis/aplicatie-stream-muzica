@@ -2,7 +2,11 @@ package tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import entities.*;
+import entities.Artist;
+import entities.Host;
+import entities.Song;
+import entities.User;
+import entities.WrappedManager;
 import entitycolections.Album;
 import entitycolections.Playlist;
 import entitycolections.Podcast;
@@ -13,11 +17,11 @@ import lombok.Getter;
 import misc.ArtistMoneyStats;
 import misc.PremiumStatus;
 import misc.Status;
-import misc.WrappedVisitor;
 import pages.Merch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 public final class DataBase {
@@ -34,8 +38,9 @@ public final class DataBase {
     private Obervator obervator = new Obervator();
 
     private ArrayList<Host> tempHosts = new ArrayList<>();
-    private ArrayList<ArtistMoneyStats> tempArtists = new ArrayList<>();
+    private ArrayList<ArtistMoneyStats> artistStats = new ArrayList<>();
     private UserFactory userFactory = new UserFactory();
+    private static final Double MILLION = 1000000.0;
 
     private DataBase(final ArrayList<SongInput> songs,
                      final ArrayList<PodcastInput> podcasts,
@@ -162,7 +167,7 @@ public final class DataBase {
         db.newUsers.clear();
         db.hosts.clear();
         db.tempHosts.clear();
-        db.tempArtists.clear();
+        db.artistStats.clear();
         db.users = new ArrayList<>(List.copyOf(db.usersFromStart));
         db.allSongs.clear();
         db.allSongs.addAll(db.songs);
@@ -190,9 +195,11 @@ public final class DataBase {
             user.setCurrentPage("Home");
             user.setPageOrigin(null);
             user.getFollowedPlaylists().clear();
-            while (user.getPages().size() > 2) {
-                user.getPages().remove(2);
-            }
+            user.getBack().clear();
+            user.getFront().clear();
+//            while (user.getPages().size() > 2) {
+//                user.getPages().remove(2);
+//            }
         }
         for (Song song : db.songs) {
             song.setProfit(0.0);
@@ -300,6 +307,7 @@ public final class DataBase {
         }
     }
 
+    /** checks if a playlist is an album **/
     public static boolean isAlbum(final Playlist playlist) {
         for (Artist artist : db.artists) {
             if (artist.getAlbums().contains(playlist)) {
@@ -309,7 +317,8 @@ public final class DataBase {
         return false;
     }
 
-    public static Host getTempHost(String name) {
+    /** finds a temporary host with the given name **/
+    public static Host getTempHost(final String name) {
         for (Host host : db.tempHosts) {
             if (host.getUsername().equals(name)) {
                 return host;
@@ -318,7 +327,8 @@ public final class DataBase {
         return null;
     }
 
-    public static void doWrapper(User user, String name, ObjectNode node) {
+    /** does the wrapper for a user **/
+    public static void doWrapper(User user, final String name, final ObjectNode node) {
         String userType = "user";
         if (db.artists.contains(user)) {
             userType = "artist";
@@ -328,7 +338,7 @@ public final class DataBase {
         if (user == null) {
             user = getTempHost(name);
             if (user == null) {
-                node.put("message", "No data to show for " + userType +" " + name + ".");
+                node.put("message", "No data to show for " + userType + " " + name + ".");
             } else {
                 userType = "host";
             }
@@ -337,63 +347,63 @@ public final class DataBase {
             WrappedManager visitor = new WrappedManager();
             user.accept(visitor, node);
         } else {
-            node.put("message", "No data to show for " + userType +" " + name + ".");
+            node.put("message", "No data to show for " + userType + " " + name + ".");
         }
     }
 
+    /** adds an artist that had something played or bought **/
     public static void addListenedArtist(final String name) {
         boolean add = true;
-        for (ArtistMoneyStats artist : db.tempArtists) {
+        for (ArtistMoneyStats artist : db.artistStats) {
            if (artist.getName().equals(name)) {
                add = false;
            }
        }
         if (add) {
-            db.tempArtists.add(new ArtistMoneyStats(name));
+            db.artistStats.add(new ArtistMoneyStats(name));
         }
     }
 
-    public static void endProgram(ObjectNode node) {
+    /** executes the printing of the played artists and their profits **/
+    public static void endProgram(final ObjectNode node) {
         node.remove("user");
         node.remove("timestamp");
 
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode results = objectMapper.createObjectNode();
         for (User user : db.users) {
-            distributeProfits(user.getPlayer().getSongHistory(), 1000000.0);
+            distributeProfits(user.getPlayer().getSongHistory(), MILLION);
         }
         for (User user : db.newUsers) {
-            distributeProfits(user.getPlayer().getSongHistory(), 1000000.0);
+            distributeProfits(user.getPlayer().getSongHistory(), MILLION);
         }
 
-        db.tempArtists.sort((a1, a2) -> (int) (a2.getMerchRevenue() + a2.getSongValue() -
-                a1.getMerchRevenue() - a1.getSongValue()));
+        db.artistStats.sort((a1, a2) -> (int) (a2.getMerchRevenue() + a2.getSongValue()
+                - a1.getMerchRevenue() - a1.getSongValue()));
 
-        for (int i = 0; i < db.tempArtists.size(); i++) {
-            db.tempArtists.get(i).update();
-            db.tempArtists.get(i).setRanking(i + 1);
-            results.set(db.tempArtists.get(i).getName(), objectMapper.valueToTree(db.tempArtists.get(i)));
+        for (int i = 0; i < db.artistStats.size(); i++) {
+            db.artistStats.get(i).update();
+            db.artistStats.get(i).setRanking(i + 1);
+            results.set(db.artistStats.get(i).getName(),
+                    objectMapper.valueToTree(db.artistStats.get(i)));
         }
 
         node.set("result", results);
     }
 
-    public static void addProfitableSong(Song song, String artist) {
-        boolean added = false;
-        for (ArtistMoneyStats artistMoneyStats : db.tempArtists) {
+    /** adds a song and its profit to an artist stat **/
+    public static void addProfitableSong(final Song song, final String artist) {
+        for (ArtistMoneyStats artistMoneyStats : db.artistStats) {
             if (artistMoneyStats.getName().equals(artist)
                     && !artistMoneyStats.getProfitableSongs().contains(song)) {
-                added = true;
                 artistMoneyStats.getProfitableSongs().add(song);
             }
         }
-//        if (!added) {
-//            addListenedArtist(artist);
-//            addProfitableSong(song, artist);
-//        }
     }
 
-    public static void distributeProfits(ArrayList<Song> songHistory, Double val) {
+    /** distributes equal portions of profit to the artists that owe the songs
+     * from the song list **/
+    public static void distributeProfits(final ArrayList<Song> songHistory, final Double val) {
         if (!songHistory.isEmpty()) {
             Double value = val / songHistory.size();
 
@@ -401,7 +411,7 @@ public final class DataBase {
                 song.setProfit(song.getProfit() + value);
                 addProfitableSong(song, song.getArtist());
 
-                for (ArtistMoneyStats artist : db.tempArtists) {
+                for (ArtistMoneyStats artist : db.artistStats) {
                     if (artist.getName().equals(song.getArtist())) {
                         artist.addSongProfit(value);
                     }
@@ -410,8 +420,9 @@ public final class DataBase {
         }
     }
 
+    /** finds the stats of an artist with the gives name **/
     public static ArtistMoneyStats getTmpArtist(final String name) {
-        for (ArtistMoneyStats artist : db.tempArtists) {
+        for (ArtistMoneyStats artist : db.artistStats) {
             if (artist.getName().equals(name)) {
                 return artist;
             }
@@ -419,10 +430,41 @@ public final class DataBase {
         return null;
     }
 
-    public static void addMerchRev(User artist, Merch merch) {
+    /** adds merch revenue to the artist **/
+    public static void addMerchRev(final User artist, final Merch merch) {
         addListenedArtist(artist.getUsername());
         ArtistMoneyStats tmpArtist = getTmpArtist(artist.getUsername());
         Double merchRev = tmpArtist.getMerchRevenue();
         tmpArtist.setMerchRevenue(merchRev + (double) merch.getPrice());
+    }
+
+    /** creates a fan playlist recommendation **/
+    public static Playlist createFanPlaylist(final String name) {
+        ArrayList<Song> liked = new ArrayList<>();
+        for (Artist artist : db.artists) {
+            if (artist.getUsername().equals(name)) {
+                ArrayList<String> fans = new WrappedManager().mapToArray(artist.getFans());
+                for (String names : fans) {
+                    User user = DataBase.findUser(names);
+                    if (user != null) {
+                        ArrayList<Song> songs1 = new ArrayList<>(Set.copyOf(user.getLiked()));
+                        songs1.sort((s1, s2) -> s2.getNumLikes() - s1.getNumLikes());
+                        for (int i = 0; i < artist.getFive() && i < songs1.size(); i++) {
+                            liked.add(user.getLiked().get(i));
+                        }
+                    }
+                    liked.sort((s1, s2) -> s2.getNumLikes() - s1.getNumLikes());
+                    while (liked.size() > artist.getFive()) {
+                        liked.remove(artist.getFive());
+                    }
+                }
+                break;
+            }
+        }
+        Playlist playlist = new Playlist(name + " Fan Club recommendations", 0, name);
+        for (Song song : liked) {
+            playlist.addRemove(song);
+        }
+        return playlist;
     }
 }

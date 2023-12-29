@@ -6,7 +6,8 @@ import entities.User;
 
 public final class UserFactory {
 
-    public User createUser (Command cmd) {
+    /** creates a user, artist or host, also adds them to the database **/
+    public User createUser(final Command cmd) {
         switch (cmd.getType()) {
             case "user":
                 User user = new User(cmd.getUsername(), cmd.getCity(), cmd.getAge());
@@ -20,7 +21,7 @@ public final class UserFactory {
                 Host host = new Host(cmd.getUsername(), cmd.getCity(), cmd.getAge());
                 DataBase.getDB().getHosts().add(host);
                 return host;
+            default: return null;
         }
-        return null;
     }
 }

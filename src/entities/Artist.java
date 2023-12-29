@@ -107,11 +107,13 @@ public final class Artist extends User implements Comparable {
         return false;
     }
 
-    public void accept(WrappedVisitor visitor, ObjectNode node) {
+    /** accepts a wrapped visitor to put the correct wrapped output in node **/
+    public void accept(final WrappedVisitor visitor, final ObjectNode node) {
         visitor.visit(this, node);
     }
 
-    public void addListenedSong(Song song) {
+    /** adds a listened song or increments its number of listens **/
+    public void addListenedSong(final Song song) {
         if (listenedSongs.containsKey(song.getName())) {
             Integer numListens = listenedSongs.get(song.getName());
             listenedSongs.replace(song.getName(), numListens + 1);
@@ -120,7 +122,8 @@ public final class Artist extends User implements Comparable {
         }
     }
 
-    public void addListenedAlbum(Album album) {
+    /** adds a listened album or increments its number of listens **/
+    public void addListenedAlbum(final Album album) {
         if (listenedAlbums.containsKey(album.getName())) {
             Integer numListens = listenedAlbums.get(album.getName());
             listenedAlbums.replace(album.getName(), numListens + 1);
@@ -129,7 +132,9 @@ public final class Artist extends User implements Comparable {
         }
     }
 
-    public void addFan(User user) {
+    /** adds a user that listened to something from this artist
+     * or increments its number of listens **/
+    public void addFan(final User user) {
         if (fans.containsKey(user.getUsername())) {
             Integer numListens = fans.get(user.getUsername());
             fans.replace(user.getUsername(), numListens + 1);
@@ -138,12 +143,14 @@ public final class Artist extends User implements Comparable {
         }
     }
 
+    /** checks if this artist has any data to be wrapped **/
     @Override
     public boolean noWrapper() {
         return listenedSongs.isEmpty();
     }
 
-    public boolean addSub(User user) {
+    /** adds or removes a user that subscribed to this artist **/
+    public boolean addSub(final User user) {
         if (subscribers.contains(user)) {
             subscribers.remove(user);
             return false;

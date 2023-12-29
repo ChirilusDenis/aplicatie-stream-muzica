@@ -24,7 +24,23 @@ public final class PagePrinterVisitor implements Visitor {
         if (!play.equals("")) {
             play = play.substring(0, play.length() - 2);
         }
-        return "Liked songs:\n\t[" + songs + "]\n\nFollowed playlists:\n\t[" + play + "]";
+        String recomPLay = "";
+        for (Playlist p : page.getRecomendedPLaylists()) {
+            recomPLay = recomPLay + p.getName() + ", ";
+        }
+        if (!recomPLay.equals("")) {
+            recomPLay = recomPLay.substring(0, recomPLay.length() - 2);
+        }
+        String recomSongs = "";
+        for (Song s : page.getRecomendedSongs()) {
+            recomSongs = recomSongs + s.getName() + ", ";
+        }
+        if (!recomSongs.equals("")) {
+            recomSongs = recomSongs.substring(0, recomSongs.length() - 2);
+        }
+        return "Liked songs:\n\t[" + songs + "]\n\nFollowed playlists:\n\t[" + play + "]"
+                + "\n\nSong recommendations:\n\t[" + recomSongs
+                + "]\n\nPlaylists recommendations:\n\t[" + recomPLay + "]";
     }
 
     @Override

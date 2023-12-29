@@ -1,7 +1,11 @@
 package tools;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import entities.*;
+import entities.User;
+import entities.Artist;
+import entities.Host;
+import entities.PodcastEpisode;
+import entities.Song;
 import entitycolections.Album;
 import entitycolections.Playlist;
 import entitycolections.Podcast;
@@ -172,7 +176,7 @@ public final class MusicPlayer {
         }
     }
 
-    private void listenToAlbum(Playlist playlist) {
+    private void listenToAlbum(final Playlist playlist) {
         if (playlist != null) {
             if (DataBase.isAlbum(playlist)) {
                 if (ownedBy.getListenedAlbums().containsKey(playlist.getName())) {
@@ -339,9 +343,6 @@ public final class MusicPlayer {
                                     } else {
                                         crtEp = crtPd.getEpisodesFull().get(
                                                 crtPd.getEpisodesFull().indexOf(crtEp) + 1);
-                                        Host host = (Host) DataBase.findUser(crtPd.getOwner());
-                                        if (host != null) {
-                                        }
                                         remainingTime = remainingTime + crtEp.getDuration();
                                         loaded = crtEp.getName();
                                     }
@@ -349,17 +350,11 @@ public final class MusicPlayer {
 
                                 case 1:
                                     remainingTime = remainingTime + crtEp.getDuration();
-                                    Host host = (Host) DataBase.findUser(crtPd.getOwner());
-                                    if (host != null) {
-                                    }
                                     repeat = 0;
                                     break;
 
                                 case 2:
                                     remainingTime = remainingTime + crtEp.getDuration();
-                                    Host host1 = (Host) DataBase.findUser(crtPd.getOwner());
-                                    if (host1 != null) {
-                                    }
                                     break;
 
                                 default:
@@ -603,7 +598,8 @@ public final class MusicPlayer {
         }
     }
 
-    public void loadAdd(Integer price, int crtTime, ObjectNode node) {
+    /** loads an ad into the player **/
+    public void loadAdd(final Integer price, final int crtTime, final ObjectNode node) {
         updateTime(crtTime);
         if (whatIsLoaded == 1 || whatIsLoaded == 0) {
             adds.add(price);

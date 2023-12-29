@@ -8,7 +8,7 @@ public final class Notification {
     private String name;
     private String description;
 
-    public Notification(String name, String description) {
+    public Notification(final String name, final String description) {
         this.name = name;
         this.description = description;
     }

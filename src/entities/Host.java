@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 @Getter @Setter
-public class Host extends User {
+public final class Host extends User {
     @JsonIgnore
     private ArrayList<Podcast> podcasts = new ArrayList<>();
     @JsonIgnore
@@ -122,11 +122,14 @@ public class Host extends User {
         }
         return false;
     }
-    public void accept(WrappedVisitor visitor, ObjectNode node) {
+
+    /** accepts a visitor to construct the wrapped output for this host **/
+    public void accept(final WrappedVisitor visitor, final ObjectNode node) {
         visitor.visit(this, node);
     }
 
-    public void addListenedEpisodes(PodcastEpisode episode) {
+    /** adds a listened episode or increments its number of listens **/
+    public void addListenedEpisodes(final PodcastEpisode episode) {
         if (listenedEpisodes.containsKey(episode.getName())) {
             Integer numListens = listenedEpisodes.get(episode.getName());
             listenedEpisodes.replace(episode.getName(), numListens + 1);
@@ -135,18 +138,22 @@ public class Host extends User {
         }
     }
 
+    /** checks if there's any data for this host to wrap **/
     @Override
     public boolean noWrapper() {
         return listenedEpisodes.isEmpty();
     }
 
-    public void addFan(User user) {
+    /** adds a user that listened to an episode from this host
+     * or increases its listen count **/
+    public void addFan(final User user) {
         if (!fans.contains(user)) {
             fans.add(user);
         }
     }
 
-    public boolean addSub(User user) {
+    /** adds or removes a subscriber to this host **/
+    public boolean addSub(final User user) {
         if (subscribers.contains(user)) {
             subscribers.remove(user);
             return false;
