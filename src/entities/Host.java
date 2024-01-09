@@ -52,8 +52,10 @@ public final class Host extends User {
             this.podcasts.add(newPodcast);
             node.put("message", this.getUsername() + " has added new podcast successfully.");
             for (User user : subscribers) {
-                user.getNotifications().add(new Notification("New Podcast", "New Podcast from "
-                        + getUsername() + "."));
+                user.updateNotif("New Podcast", "New Podcast from "
+                        + getUsername() + ".");
+//                user.getNotifications().add(new Notification("New Podcast", "New Podcast from "
+//                        + getUsername() + "."));
             }
         }
     }
@@ -68,8 +70,10 @@ public final class Host extends User {
             this.hostPage.getAnnouncements().add(
                     new Announcement(cmd.getName(), cmd.getDescription()));
             for (User user : subscribers) {
-                user.getNotifications().add(new Notification("New Announcement",
-                        "New Announcement from " + getUsername() + "."));
+                user.updateNotif("New Announcement",
+                        "New Announcement from " + getUsername() + ".");
+//                user.getNotifications().add(new Notification("New Announcement",
+//                        "New Announcement from " + getUsername() + "."));
             }
         }
     }

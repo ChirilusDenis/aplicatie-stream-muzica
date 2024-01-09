@@ -188,7 +188,6 @@ public final class DataBase {
             user.getNotifications().clear();
             user.getPlayer().getSongHistory().clear();
             user.getPlayer().getSongHistoryAdd().clear();
-            user.getPlayer().getAdds().clear();
             user.setNumUsersUsingThis(0);
             user.getPlayer().setCrtEp(null);
             user.getPlayer().setLastEpTime(0);
@@ -197,9 +196,6 @@ public final class DataBase {
             user.getFollowedPlaylists().clear();
             user.getBack().clear();
             user.getFront().clear();
-//            while (user.getPages().size() > 2) {
-//                user.getPages().remove(2);
-//            }
         }
         for (Song song : db.songs) {
             song.setProfit(0.0);

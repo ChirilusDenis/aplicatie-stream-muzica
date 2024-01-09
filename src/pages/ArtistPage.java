@@ -67,8 +67,10 @@ public class ArtistPage implements Visitable {
             merches.add(new Merch(cmd.getName(), cmd.getDescription(), cmd.getPrice()));
             node.put("message", cmd.getUsername() + " has added new merchandise successfully.");
             for (User user : ((Artist) owner).getSubscribers()) {
-                user.getNotifications().add(new Notification("New Merchandise",
-                        "New Merchandise from " + owner.getUsername() + "."));
+                user.updateNotif("New Merchandise",
+                        "New Merchandise from " + owner.getUsername() + ".");
+//                user.getNotifications().add(new Notification("New Merchandise",
+//                        "New Merchandise from " + owner.getUsername() + "."));
             }
         }
     }
@@ -83,8 +85,10 @@ public class ArtistPage implements Visitable {
             events.add(new Event(cmd.getName(), cmd.getDate(), cmd.getDescription()));
             node.put("message", cmd.getUsername() + " has added new event successfully.");
             for (User user : ((Artist) owner).getSubscribers()) {
-                user.getNotifications().add(new Notification("New Event", "New Event from "
-                        + owner.getUsername() + "."));
+                user.updateNotif("New Event", "New Event from "
+                        + owner.getUsername() + ".");
+//                user.getNotifications().add(new Notification("New Event", "New Event from "
+//                        + owner.getUsername() + "."));
             }
         }
     }

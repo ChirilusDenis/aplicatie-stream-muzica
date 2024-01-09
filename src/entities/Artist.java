@@ -86,8 +86,9 @@ public final class Artist extends User implements Comparable {
             DataBase.getDB().getAllSongs().addAll(album.getSongsfull());
             node.put("message", this.getUsername() + " has added new album successfully.");
             for (User user : subscribers) {
-                user.getNotifications().add(new Notification("New Album", "New Album from "
-                        + getUsername() + "."));
+                user.updateNotif("New Album", "New Album from " + getUsername() + ".");
+//                user.getNotifications().add(new Notification("New Album", "New Album from "
+//                        + getUsername() + "."));
             }
         }
     }
