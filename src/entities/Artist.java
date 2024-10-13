@@ -23,6 +23,7 @@ public final class Artist extends User implements Comparable {
     private HashMap<String, Integer> fans = new HashMap<>();
     private int listeners = 0;
     private ArrayList<User> subscribers = new ArrayList<>();
+    private Subject subject = new Subject();
 
 
     public Artist(final String username, final String city, final int age) {
@@ -58,7 +59,7 @@ public final class Artist extends User implements Comparable {
         }
     }
 
-    /** get the number of likes from all the songs from all albums */
+    /** get the number of likes from all the songs from all albums **/
     public int allLikes() {
         int numLikes = 0;
         for (Album album : this.albums) {
@@ -85,11 +86,7 @@ public final class Artist extends User implements Comparable {
             albums.add(album);
             DataBase.getDB().getAllSongs().addAll(album.getSongsfull());
             node.put("message", this.getUsername() + " has added new album successfully.");
-            for (User user : subscribers) {
-                user.updateNotif("New Album", "New Album from " + getUsername() + ".");
-//                user.getNotifications().add(new Notification("New Album", "New Album from "
-//                        + getUsername() + "."));
-            }
+            subject.notifyAll("New Album", "New Album from " + getUsername() + ".");
         }
     }
 
@@ -108,7 +105,7 @@ public final class Artist extends User implements Comparable {
         return false;
     }
 
-    /** accepts a wrapped visitor to put the correct wrapped output in node **/
+    /** accepts a wrapped visitor to put the correct wrapped output in node */
     public void accept(final WrappedVisitor visitor, final ObjectNode node) {
         visitor.visit(this, node);
     }
@@ -154,9 +151,11 @@ public final class Artist extends User implements Comparable {
     public boolean addSub(final User user) {
         if (subscribers.contains(user)) {
             subscribers.remove(user);
+            subject.removeUser(user);
             return false;
         }
         subscribers.add(user);
+        subject.addUser(user);
         return true;
     }
 }

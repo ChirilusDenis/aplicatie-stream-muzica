@@ -25,6 +25,7 @@ public final class Host extends User {
     private final ArrayList<User> fans = new ArrayList<>();
     private int listeners = 0;
     private ArrayList<User> subscribers = new ArrayList<>();
+    private Subject subject = new Subject();
 
     public Host(final String username, final String city, final int age) {
         super(username, city, age);
@@ -51,12 +52,8 @@ public final class Host extends User {
         } else {
             this.podcasts.add(newPodcast);
             node.put("message", this.getUsername() + " has added new podcast successfully.");
-            for (User user : subscribers) {
-                user.updateNotif("New Podcast", "New Podcast from "
-                        + getUsername() + ".");
-//                user.getNotifications().add(new Notification("New Podcast", "New Podcast from "
-//                        + getUsername() + "."));
-            }
+            subject.notifyAll("New Podcast", "New Podcast from "
+                    + getUsername() + ".");
         }
     }
 
@@ -69,12 +66,8 @@ public final class Host extends User {
             node.put("message", this.getUsername() + " has successfully added new announcement.");
             this.hostPage.getAnnouncements().add(
                     new Announcement(cmd.getName(), cmd.getDescription()));
-            for (User user : subscribers) {
-                user.updateNotif("New Announcement",
-                        "New Announcement from " + getUsername() + ".");
-//                user.getNotifications().add(new Notification("New Announcement",
-//                        "New Announcement from " + getUsername() + "."));
-            }
+            subject.notifyAll("New Announcement",
+                    "New Announcement from " + getUsername() + ".");
         }
     }
 
@@ -160,9 +153,11 @@ public final class Host extends User {
     public boolean addSub(final User user) {
         if (subscribers.contains(user)) {
             subscribers.remove(user);
+            subject.removeUser(user);
             return false;
         }
         subscribers.add(user);
+        subject.addUser(user);
         return true;
     }
 }
